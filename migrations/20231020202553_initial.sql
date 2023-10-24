@@ -6,7 +6,6 @@ CREATE TABLE users (
     password TEXT NOT NULL,
     profile_photo TEXT,
     bio TEXT,
-    is_locked BOOLEAN NOT NULL DEFAULT false,
     failed_attempts SMALLINT NOT NULL DEFAULT 0,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),

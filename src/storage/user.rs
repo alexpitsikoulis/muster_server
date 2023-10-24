@@ -14,11 +14,10 @@ pub struct User {
     pub password: String,
     pub profile_photo: Option<String>,
     pub bio: Option<String>,
+    pub failed_attempts: i16,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub is_locked: bool,
-    pub failed_attempts: i16,
 }
 
 impl User {
@@ -29,11 +28,10 @@ impl User {
         password: String,
         profile_photo: Option<String>,
         bio: Option<String>,
+        failed_attempts: i16,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         deleted_at: Option<DateTime<Utc>>,
-        is_locked: bool,
-        failed_attempts: i16,
     ) -> Self {
         User {
             id,
@@ -42,11 +40,10 @@ impl User {
             password,
             profile_photo,
             bio,
+            failed_attempts,
             created_at,
             updated_at,
             deleted_at,
-            is_locked,
-            failed_attempts,
         }
     }
 }
@@ -61,11 +58,10 @@ impl Into<User> for web::Form<SignupFormData> {
             self.password.clone(),
             None,
             None,
+            0,
             now,
             now,
             None,
-            false,
-            0,
         )
     }
 }
@@ -73,8 +69,8 @@ impl Into<User> for web::Form<SignupFormData> {
 pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult, Error> {
     sqlx::query!(
         r#"
-        INSERT INTO users (id, email, name, password, profile_photo, bio, created_at, updated_at, deleted_at, is_locked, failed_attempts)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO users (id, email, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (id)
         DO
             UPDATE SET
@@ -85,11 +81,10 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult,
                 bio = EXCLUDED.bio,
                 updated_at = now(),
                 deleted_at = EXCLUDED.deleted_at,
-                is_locked = EXCLUDED.is_locked,
                 failed_attempts = EXCLUDED.failed_attempts
             WHERE
-                (users.email, users.name, users.password, users.profile_photo, users.bio, users.deleted_at, users.is_locked, users.failed_attempts) IS DISTINCT FROM
-                (EXCLUDED.email, EXCLUDED.name, EXCLUDED.password, EXCLUDED.profile_photo, EXCLUDED.bio, EXCLUDED.deleted_at, EXCLUDED.is_locked, EXCLUDED.failed_attempts)
+                (users.email, users.name, users.password, users.profile_photo, users.bio, users.deleted_at, users.failed_attempts) IS DISTINCT FROM
+                (EXCLUDED.email, EXCLUDED.name, EXCLUDED.password, EXCLUDED.profile_photo, EXCLUDED.bio, EXCLUDED.deleted_at, EXCLUDED.failed_attempts)
         "#,
         user.id,
         user.email,
@@ -100,7 +95,6 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult,
         user.created_at,
         user.updated_at,
         user.deleted_at,
-        user.is_locked,
         user.failed_attempts,
     )
     .execute(db_pool)
@@ -110,7 +104,7 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult,
 pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
     match sqlx::query!(
         r#"
-        SELECT id, email, name, password, profile_photo, bio, created_at, updated_at, deleted_at, is_locked, failed_attempts
+        SELECT id, email, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts
         FROM users
         WHERE id = $1
         "#, id
@@ -125,11 +119,10 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
             user.password,
             user.profile_photo,
             user.bio,
+            user.failed_attempts,
             user.created_at,
             user.updated_at,
             user.deleted_at,
-            user.is_locked,
-            user.failed_attempts,
         )),
         Err(e) => Err(e),
     }
@@ -138,7 +131,7 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
 pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, Error> {
     match sqlx::query!(
         r#"
-        SELECT id, email, name, password, profile_photo, bio, created_at, updated_at, deleted_at, is_locked, failed_attempts
+        SELECT id, email, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts
         FROM users
         WHERE email = $1
         "#, email
@@ -153,11 +146,10 @@ pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, 
                 user.password,
                 user.profile_photo,
                 user.bio,
+                user.failed_attempts,
                 user.created_at,
                 user.updated_at,
                 user.deleted_at,
-                user.is_locked,
-                user.failed_attempts,
             )),
             Err(e) => Err(e)
         }

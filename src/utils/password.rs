@@ -12,7 +12,7 @@ pub enum PasswordValidationError {
     ArgonErr(argon2::Error),
 }
 
-pub type Result<T> = std::result::Result<T, PasswordValidationError>;
+type Result<T> = std::result::Result<T, PasswordValidationError>;
 
 pub fn validate_and_hash_password(password: String) -> Result<String> {
     match validate_password(password.clone()) {

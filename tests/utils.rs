@@ -74,11 +74,10 @@ pub async fn insert_user(db_pool: &PgPool, user: Option<User>) -> User {
                 "Testpassw0rd!".into(),
                 None,
                 None,
+                0,
                 now,
                 now,
                 None,
-                false,
-                0,
             )
          }
     };

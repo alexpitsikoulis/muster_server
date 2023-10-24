@@ -22,7 +22,6 @@ async fn test_create_server_success() {
         .await
         .expect("Failed to execute request");
 
-    println!("{:?}", response.headers());
     let token = response.headers()
         .get("Authorization")
         .expect("Failed to get Authorization header from response")

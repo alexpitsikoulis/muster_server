@@ -1,5 +1,6 @@
 use actix_web::{HttpResponse, web};
 use sqlx::PgPool;
+use uuid::Uuid;
 use crate::utils::{validate_and_hash_password, compare_password_hash, PasswordValidationError, generate_token};
 use crate::storage::{upsert_user, get_user_by_email, User};
 
@@ -11,15 +12,19 @@ pub struct SignupFormData {
 }
 
 pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
+    let request_id = Uuid::new_v4();
     match validate_and_hash_password(form.password.clone()) {
         Ok(password_hash) => {
             let mut user_data: User = form.into();
             user_data.password = password_hash;
             match upsert_user(db_pool.get_ref(), &user_data).await
             {
-                Ok(_) => HttpResponse::Ok().finish(),
+                Ok(_) => {
+                    tracing::info!("request_id {}: INSERT into users ('{}', '{}') successful", request_id, user_data.email, user_data.name);
+                    HttpResponse::Ok().finish()
+                },
                 Err(e) => {
-                    log::error!("Failed to execute query: {}", e);
+                    tracing::error!("request_id {}: Failed to execute query: {}", request_id, e);
                     HttpResponse::InternalServerError().finish()
                 }
             }
@@ -33,7 +38,7 @@ pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>)
                 PasswordValidationError::PwdMissingUpperCase => HttpResponse::BadRequest().body("Password must contain at least one uppercase letter"),
                 PasswordValidationError::PwdMissingLowercase => HttpResponse::BadRequest().body("Password must contain at least one lowercase letter"),
                 PasswordValidationError::ArgonErr(e) => {
-                    log::error!("Argon2 failed to validate password: {:?}", e);
+                    tracing::error!("request_id {}: Argon2 failed to validate password: {:?}", request_id, e);
                     HttpResponse::InternalServerError().finish()
                 }
             }
@@ -48,42 +53,30 @@ pub struct LoginFormData {
 }
 
 pub async fn login(form: web::Form<LoginFormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
+    let request_id = Uuid::new_v4();
     match get_user_by_email(db_pool.get_ref(), form.email.clone()).await
     {
         Ok(mut user) => {
             let login_successful = compare_password_hash(form.password.clone(), user.password.clone());
             if login_successful {
                 user.failed_attempts = 0;
-                user.is_locked = false;
             } else {
                 user.failed_attempts += 1;
-                if user.failed_attempts >= 10 {
-                    user.is_locked = true;
-                }
             }
             if let Err(e) = upsert_user(db_pool.get_ref(), &user).await {
-                log::error!("INSERT into users table failed: {:?}", e);
+                tracing::error!("request_id {}: INSERT into users table failed: {:?}", request_id, e);
                 return HttpResponse::InternalServerError().finish();
             }
 
             match generate_token(user.id) {
                 Ok(token) => {
                     HttpResponse::Ok()
-                        .append_header(
-                            ("X-Login-Successful", 
-                                match login_successful {
-                                    true => "true",
-                                    false => "false"
-                                }
-                            )
-                        )
-                        .append_header(
-                            ("Authorization", token)
-                        )
+                        .append_header(("X-Login-Successful", login_successful.to_string()))
+                        .append_header(("Authorization", token))
                         .finish()
                 },
                 Err(e) => {
-                    log::error!("Failed to generate JWT: {}", e);
+                    tracing::error!("request_id {}: Failed to generate JWT: {}", request_id, e);
                     HttpResponse::InternalServerError().finish()
                 }
             }
@@ -93,7 +86,7 @@ pub async fn login(form: web::Form<LoginFormData>, db_pool: web::Data<PgPool>) -
             match e {
                 sqlx::Error::RowNotFound => HttpResponse::Ok().append_header(("X-Login-Successful", "false")).finish(),
                 _ => {
-                    log::error!("Failed to execute GET from users table query: {:?}", e);
+                    tracing::error!("request_id {}: Failed to execute GET from users table query: {:?}", request_id, e);
                     HttpResponse::InternalServerError().finish()
                 }
             }
