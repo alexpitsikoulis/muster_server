@@ -57,6 +57,9 @@ pub async fn login(form: web::Form<LoginFormData>, db_pool: web::Data<PgPool>) -
     match get_user_by_email(db_pool.get_ref(), form.email.clone()).await
     {
         Ok(mut user) => {
+            if user.failed_attempts >= 10 {
+                return HttpResponse::Forbidden().body("Account is locked due to too many failed login attempts")
+            };
             let login_successful = compare_password_hash(form.password.clone(), user.password.clone());
             if login_successful {
                 user.failed_attempts = 0;
