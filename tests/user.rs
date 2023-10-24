@@ -1,6 +1,7 @@
 mod utils;
 use utils::{spawn_app, clear_database};
 use muttr_server::utils::compare_password_hash;
+use muttr_server::storage::USERS_TABLE_NAME;
 
 #[tokio::test]
 async fn test_signup_success() {
@@ -32,7 +33,6 @@ async fn test_signup_success() {
             panic!("DB query failed: {}", e);
         }
     };
-    clear_database(&app.db_pool).await;
 }
 
 #[tokio::test]
@@ -70,7 +70,7 @@ async fn test_signup_failed_400() {
             "The API did not fail with 400 Bad Request when the payload was {}.",
             error_message,
         );
-        clear_database(&app.db_pool).await;
+        clear_database(&app.db_pool, USERS_TABLE_NAME).await;
     }
 }
 
@@ -98,7 +98,6 @@ async fn test_login_success() {
 
     assert_eq!(200, response.status());
     assert_eq!("true", response.headers().get("X-Login-Successful").expect("X-Login-Success header not present"));
-    clear_database(&app.db_pool).await;
 }
 
 #[tokio::test]
@@ -125,5 +124,4 @@ async fn test_login_failure() {
 
     assert_eq!(200, response.status());
     assert_eq!("false", response.headers().get("X-Login-Successful").expect("X-Login-Success header not present"));
-    clear_database(&app.db_pool).await;
 }

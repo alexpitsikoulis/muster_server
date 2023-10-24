@@ -1,6 +1,7 @@
 use rand::RngCore;
 use argon2::{self, Config};
 
+#[derive(Debug)]
 pub enum PasswordValidationError {
     PwdTooShort,
     PwdTooLong,

@@ -17,7 +17,7 @@ CREATE TABLE servers (
     id uuid NOT NULL,
     PRIMARY KEY(id),
     name VARCHAR(50) NOT NULL,
-    owner_id uuid REFERENCES users(id),
+    owner_id uuid NOT NULL REFERENCES users(id),
     description TEXT,
     photo TEXT,
     cover_photo TEXT,
@@ -27,8 +27,8 @@ CREATE TABLE servers (
 );
 
 CREATE TABLE server_members (
-    server_id uuid REFERENCES servers(id),
-    user_id uuid REFERENCES users(id),
+    server_id uuid NOT NULL REFERENCES servers(id),
+    user_id uuid NOT NULL REFERENCES users(id),
     PRIMARY KEY(server_id, user_id),
     is_admin BOOLEAN DEFAULT false,
     is_banned BOOLEAN DEFAULT false,
@@ -38,7 +38,7 @@ CREATE TABLE server_members (
 CREATE TABLE group_chats (
     id uuid NOT NULL,
     PRIMARY KEY(id),
-    server_id uuid REFERENCES servers(id),
+    server_id uuid NOT NULL REFERENCES servers(id),
     name VARCHAR(50) NOT NULL,
     description VARCHAR(255),
     photo TEXT,
@@ -51,18 +51,18 @@ CREATE TABLE group_chats (
 CREATE TABLE posts (
     id uuid NOT NULL,
     PRIMARY KEY(id),
-    user_id uuid REFERENCES users(id),
-    server_id uuid REFERENCES servers(id),
+    user_id uuid NOT NULL REFERENCES users(id),
+    server_id uuid NOT NULL REFERENCES servers(id),
     content TEXT NOT NULL,
-    quoted_post_id uuid REFERENCES posts(id),
+    quoted_post_id uuid NOT NULL REFERENCES posts(id),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz
 );
 
 CREATE TABLE post_likes (
-    post_id uuid REFERENCES posts(id),
-    user_id uuid REFERENCES users(id),
+    post_id uuid NOT NULL REFERENCES posts(id),
+    user_id uuid NOT NULL REFERENCES users(id),
     PRIMARY KEY(post_id, user_id),
     created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -70,8 +70,8 @@ CREATE TABLE post_likes (
 CREATE TABLE comments (
     id uuid NOT NULL,
     PRIMARY KEY(id),
-    post_id uuid REFERENCES posts(id),
-    user_id uuid REFERENCES users(id),
+    post_id uuid NOT NULL REFERENCES posts(id),
+    user_id uuid NOT NULL REFERENCES users(id),
     comment TEXT,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
@@ -79,8 +79,8 @@ CREATE TABLE comments (
 );
 
 CREATE TABLE comment_likes (
-    comment_id uuid REFERENCES comments(id),
-    user_id uuid REFERENCES users(id),
+    comment_id uuid NOT NULL REFERENCES comments(id),
+    user_id uuid NOT NULL REFERENCES users(id),
     PRIMARY KEY(comment_id, user_id),
     created_at timestamptz NOT NULL DEFAULT now()
 );

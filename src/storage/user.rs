@@ -5,6 +5,8 @@ use sqlx::{Error, PgPool};
 use uuid::Uuid;
 use crate::handlers::SignupFormData;
 
+pub const USERS_TABLE_NAME: &str = "users";
+
 pub struct User {
     pub id: Uuid,
     pub email: String,

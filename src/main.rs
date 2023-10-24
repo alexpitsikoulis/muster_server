@@ -1,10 +1,12 @@
 use std::net::TcpListener;
 
+use env_logger::Env;
 use muttr_server::{startup::run, config::get_config};
 use sqlx::PgPool;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let config = get_config(Some("config.yaml")).expect("Failed to read config file");
     let connection_pool = PgPool::connect(
         &config.database.connection_string()

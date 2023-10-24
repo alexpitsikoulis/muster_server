@@ -1,11 +1,11 @@
 #[derive(serde::Deserialize)]
-pub struct Settings {
-    pub database: DatabaseSettings,
+pub struct Config {
+    pub database: DatabaseConfig,
     pub application_port: u16
 }
 
 #[derive(serde::Deserialize)]
-pub struct DatabaseSettings {
+pub struct DatabaseConfig {
     pub username: String,
     pub password: String,
     pub host: String,
@@ -13,16 +13,23 @@ pub struct DatabaseSettings {
     pub database_name: String
 }
 
-impl DatabaseSettings {
+impl DatabaseConfig {
     pub fn connection_string(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
             self.username, self.password, self.host, self.port, self.database_name,
         )
     }
+
+    pub fn test_connection_string(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}",
+            self.username, self.password, self.host, self.port,
+        )
+    }
 }
 
-pub fn get_config(config_file: Option<&'static str>) -> Result<Settings, config::ConfigError> {
+pub fn get_config(config_file: Option<&'static str>) -> Result<Config, config::ConfigError> {
     let settings = config::Config::builder()
         .add_source(
             config::File::new(match config_file {
@@ -32,5 +39,5 @@ pub fn get_config(config_file: Option<&'static str>) -> Result<Settings, config:
         )
         .build()?;
 
-    settings.try_deserialize::<Settings>()
+    settings.try_deserialize::<Config>()
 }

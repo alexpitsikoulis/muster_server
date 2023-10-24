@@ -1,8 +1,6 @@
-use std::convert::Into;
-
-use actix_web::{HttpResponse, web, HttpResponseBuilder};
+use actix_web::{HttpResponse, web};
 use sqlx::PgPool;
-use crate::utils::{validate_and_hash_password, compare_password_hash, PasswordValidationError};
+use crate::utils::{validate_and_hash_password, compare_password_hash, PasswordValidationError, generate_token};
 use crate::storage::{upsert_user, get_user_by_email, User};
 
 #[derive(serde::Deserialize)]
@@ -21,7 +19,7 @@ pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>)
             {
                 Ok(_) => HttpResponse::Ok().finish(),
                 Err(e) => {
-                    println!("Failed to execute query: {}", e);
+                    log::error!("Failed to execute query: {}", e);
                     HttpResponse::InternalServerError().finish()
                 }
             }
@@ -34,7 +32,10 @@ pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>)
                 PasswordValidationError::PwdMissingNumber => HttpResponse::BadRequest().body("Password must contain at least one number"),
                 PasswordValidationError::PwdMissingUpperCase => HttpResponse::BadRequest().body("Password must contain at least one uppercase letter"),
                 PasswordValidationError::PwdMissingLowercase => HttpResponse::BadRequest().body("Password must contain at least one lowercase letter"),
-                PasswordValidationError::ArgonErr(_) => HttpResponse::InternalServerError().finish(),
+                PasswordValidationError::ArgonErr(e) => {
+                    log::error!("Argon2 failed to validate password: {:?}", e);
+                    HttpResponse::InternalServerError().finish()
+                }
             }
         }
     }
@@ -61,22 +62,38 @@ pub async fn login(form: web::Form<LoginFormData>, db_pool: web::Data<PgPool>) -
                 }
             }
             if let Err(e) = upsert_user(db_pool.get_ref(), &user).await {
+                log::error!("INSERT into users table failed: {:?}", e);
                 return HttpResponse::InternalServerError().finish();
             }
-            HttpResponse::Ok().append_header(
-                ("X-Login-Successful", 
-                    match compare_password_hash(form.password.clone(), user.password.clone()) {
-                        true => "true",
-                        false => "false"
-                    }
-                )
-            ).finish()
+
+            match generate_token(user.id) {
+                Ok(token) => {
+                    HttpResponse::Ok()
+                        .append_header(
+                            ("X-Login-Successful", 
+                                match login_successful {
+                                    true => "true",
+                                    false => "false"
+                                }
+                            )
+                        )
+                        .append_header(
+                            ("Authorization", token)
+                        )
+                        .finish()
+                },
+                Err(e) => {
+                    log::error!("Failed to generate JWT: {}", e);
+                    HttpResponse::InternalServerError().finish()
+                }
+            }
+
         },
         Err(e) => {
             match e {
                 sqlx::Error::RowNotFound => HttpResponse::Ok().append_header(("X-Login-Successful", "false")).finish(),
                 _ => {
-                    println!("Failed to execute query: {}", e);
+                    log::error!("Failed to execute GET from users table query: {:?}", e);
                     HttpResponse::InternalServerError().finish()
                 }
             }
