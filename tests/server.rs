@@ -1,7 +1,4 @@
 mod utils;
-use std::collections::HashMap;
-
-use sqlx::Executor;
 use utils::{spawn_app, clear_database, insert_user};
 use muttr_server::storage::SERVERS_TABLE_NAME;
 use actix_web::web::JsonBody;

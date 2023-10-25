@@ -1,12 +1,19 @@
 use std::net::TcpListener;
-
-use env_logger::Env;
-use muttr_server::{startup::run, config::get_config};
 use sqlx::PgPool;
+use muttr_server::{
+    startup::run,
+    config::get_config,
+    utils::{create_subscriber, init_subscriber}
+};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+    let subscriber = create_subscriber(
+        subscriber_name, default_filter_level, std::io::stdout
+    );
+    init_subscriber(subscriber);
     let config = get_config(Some("config.yaml")).expect("Failed to read config file");
     let connection_pool = PgPool::connect(
         &config.database.connection_string()

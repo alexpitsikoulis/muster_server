@@ -6,7 +6,7 @@ pub enum PasswordValidationError {
     PwdTooShort,
     PwdTooLong,
     PwdMissingLowercase,
-    PwdMissingUpperCase,
+    PwdMissingUppercase,
     PwdMissingNumber,
     PwdMissingChar,
     ArgonErr(argon2::Error),
@@ -24,7 +24,12 @@ pub fn validate_and_hash_password(password: String) -> Result<String> {
                 unencoded
             };
         
-            let config = Config::default();
+            let config = if std::env::var("TEST").is_ok() {
+                Config::original()
+            } else {
+                Config::default()
+            };
+            
             match argon2::hash_encoded(password.as_bytes(), &salt, &config) {
                 Ok(hash) => Ok(hash),
                 Err(e) => Err(PasswordValidationError::ArgonErr(e)),
@@ -38,7 +43,7 @@ pub fn compare_password_hash(password: String, hash: String) -> bool {
     argon2::verify_encoded(&hash, password.as_bytes()).unwrap()
 }
 
-fn validate_password(password: String) -> Result<()> {
+pub fn validate_password(password: String) -> Result<()> {
     if password.len() < 8 {
         return Err(PasswordValidationError::PwdTooShort);
     }
@@ -75,10 +80,10 @@ fn validate_password(password: String) -> Result<()> {
     };
 
     if !has_lower {
-        return Err(PasswordValidationError::PwdTooShort);
+        return Err(PasswordValidationError::PwdMissingLowercase);
     }
     if !has_upper {
-        return Err(PasswordValidationError::PwdTooLong);
+        return Err(PasswordValidationError::PwdMissingUppercase);
     }
     if !has_number {
         return Err(PasswordValidationError::PwdMissingNumber);

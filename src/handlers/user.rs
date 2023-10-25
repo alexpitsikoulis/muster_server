@@ -1,18 +1,26 @@
 use actix_web::{HttpResponse, web};
 use sqlx::PgPool;
 use uuid::Uuid;
+use tracing::Instrument;
 use crate::utils::{validate_and_hash_password, compare_password_hash, PasswordValidationError, generate_token};
 use crate::storage::{upsert_user, get_user_by_email, User};
 
 #[derive(serde::Deserialize)]
 pub struct SignupFormData {
     pub email: String,
-    pub name: String,
+    pub handle: String,
     pub password: String,
 }
 
 pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
     let request_id = Uuid::new_v4();
+    let request_span = tracing::info_span!(
+        "Signing up new user",
+        %request_id,
+        user_email = %form.email,
+        user_handle = %form.handle,
+    );
+    let _request_span_guard = request_span.enter();
     match validate_and_hash_password(form.password.clone()) {
         Ok(password_hash) => {
             let mut user_data: User = form.into();
@@ -20,7 +28,7 @@ pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>)
             match upsert_user(db_pool.get_ref(), &user_data).await
             {
                 Ok(_) => {
-                    tracing::info!("request_id {}: INSERT into users ('{}', '{}') successful", request_id, user_data.email, user_data.name);
+                    tracing::info!("request_id {}: INSERT into users ('{}', '{}') successful", request_id, user_data.email, user_data.handle);
                     HttpResponse::Ok().finish()
                 },
                 Err(e) => {
@@ -35,7 +43,7 @@ pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>)
                 PasswordValidationError::PwdTooLong => HttpResponse::BadRequest().body("Password too long, must be no longer than 64 characters"),
                 PasswordValidationError::PwdMissingChar => HttpResponse::BadRequest().body("Password must contain at least one special character (\" # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ _ ` { | } ~ )"),
                 PasswordValidationError::PwdMissingNumber => HttpResponse::BadRequest().body("Password must contain at least one number"),
-                PasswordValidationError::PwdMissingUpperCase => HttpResponse::BadRequest().body("Password must contain at least one uppercase letter"),
+                PasswordValidationError::PwdMissingUppercase => HttpResponse::BadRequest().body("Password must contain at least one uppercase letter"),
                 PasswordValidationError::PwdMissingLowercase => HttpResponse::BadRequest().body("Password must contain at least one lowercase letter"),
                 PasswordValidationError::ArgonErr(e) => {
                     tracing::error!("request_id {}: Argon2 failed to validate password: {:?}", request_id, e);
