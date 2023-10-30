@@ -4,11 +4,6 @@ set -eo pipefail
 
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
-if ! [ -x "$(command -v psql)" ]; then
-    echo >&2 "Error: psql is not installed."
-    exit 1
-fi
-
 if ! [ -x "$(command -v sqlx)" ]; then
     echo >&2 "Error: sqlx is not installed."
     echo >&2 "Use:"
@@ -39,14 +34,21 @@ else
         postgres -N 1000
 fi
 
-# until psql -h localhost --user postgres -c "\q" ; do
-#     >&2 echo "Postgres is still unavailable - sleeping"
-#     sleep 1
-# done
+while true ; do
+    if [ -x "$(command docker exec postgres-muttr psql -U postgres -c \"\q\")"]; then
+        DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
+        break
+    else
+        >&2 echo "Postgres is still unavailable - sleeping"
+        sleep 1
+    fi
+done
 
 >&2 echo "Postgres is up and running on port ${DB_PORT}!"
-
-DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
 export DATABASE_URL
-sqlx database create
+until sqlx database create; do {
+    >&2 echo "sqlx database create not yet ready - sleeping"
+    sleep 2
+}
+done
 sqlx migrate run
