@@ -4,7 +4,7 @@ use muttr_server::{
     utils::{create_subscriber, init_subscriber, validate_and_hash_password},
     storage::{User, upsert_user},
 };
-use secrecy::{Secret, ExposeSecret};
+use secrecy::Secret;
 use std::net::TcpListener;
 use sqlx::{PgPool, PgConnection, Executor, Connection};
 use uuid::Uuid;
@@ -29,6 +29,7 @@ pub struct TestApp {
 }
 
 pub async fn spawn_app() -> TestApp {
+    std::env::set_var("APP_ENVIRONMENT", "test");
     Lazy::force(&TRACING);
     
     let mut config = muttr_server::config::get_config()
@@ -52,9 +53,7 @@ pub async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseConfig) -> PgPool {
-    let mut connection = PgConnection::connect(
-            &config.test_connection_string().expose_secret(),
-        )
+    let mut connection = PgConnection::connect_with(&config.without_db())
         .await
         .expect("Failed to connect to Postgres");
     
@@ -63,7 +62,7 @@ pub async fn configure_database(config: &DatabaseConfig) -> PgPool {
         .await
         .expect("Failed to create database");
 
-    let connection_pool = PgPool::connect(&config.connection_string().expose_secret())
+    let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to connect to Postgres");
 

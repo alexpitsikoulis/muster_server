@@ -7,3 +7,4 @@ database:
   username: "postgres"
   password: "password"
   database_name: "muttr"
+  require_ssl: false
