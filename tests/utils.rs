@@ -29,10 +29,9 @@ pub struct TestApp {
 }
 
 pub async fn spawn_app() -> TestApp {
-    std::env::set_var("TEST", "true");
     Lazy::force(&TRACING);
     
-    let mut config = muttr_server::config::get_config(Some("tests/config.yaml"))
+    let mut config = muttr_server::config::get_config()
         .expect("Failed to load test config file");
     config.database.database_name = Uuid::new_v4().to_string();
     

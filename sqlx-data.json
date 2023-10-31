@@ -1,0 +1,340 @@
+{
+  "db": "PostgreSQL",
+  "05c94cb2aac211018da625426f6db1fabcf79d1fbedad341aeadc2310ccd1b19": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "email",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "handle",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "password",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "profile_photo",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "deleted_at",
+          "ordinal": 9,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "failed_attempts",
+          "ordinal": 10,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts\n        FROM users\n        WHERE id = $1\n        "
+  },
+  "51c72ee24ce4b9de05eae41e9e5b3ee1ed8e11936d8ad2bf82e2ea41c248c721": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "photo",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "cover_photo",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "deleted_at",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT id, name, owner_id, description, photo, cover_photo, created_at, updated_at, deleted_at\n        FROM servers\n        WHERE id = $1\n        "
+  },
+  "a585c3b875eadc47d26951aec9fe56ffc8b4a243c33c301b96ee74976cb86cd1": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Text",
+          "Text",
+          "Text",
+          "Timestamptz",
+          "Timestamptz",
+          "Timestamptz",
+          "Int2"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO users (id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n        ON CONFLICT (id)\n        DO\n            UPDATE SET\n                email = EXCLUDED.email,\n                handle = EXCLUDED.handle,\n                name = EXCLUDED.name,\n                password = EXCLUDED.password,\n                profile_photo = EXCLUDED.profile_photo,\n                bio = EXCLUDED.bio,\n                updated_at = now(),\n                deleted_at = EXCLUDED.deleted_at,\n                failed_attempts = EXCLUDED.failed_attempts\n            WHERE\n                (users.email, users.name, users.password, users.profile_photo, users.bio, users.deleted_at, users.failed_attempts) IS DISTINCT FROM\n                (EXCLUDED.email, EXCLUDED.name, EXCLUDED.password, EXCLUDED.profile_photo, EXCLUDED.bio, EXCLUDED.deleted_at, EXCLUDED.failed_attempts)\n        "
+  },
+  "a8cb37c62bb631bcab35f94414922e430a3590488a68d56689181b0a1a340320": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "email",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "handle",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "password",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "profile_photo",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "deleted_at",
+          "ordinal": 9,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "failed_attempts",
+          "ordinal": 10,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts\n        FROM users\n        WHERE email = $1\n        "
+  },
+  "be0219f364289dd61a696aa19f3a2a385a76fb58a185b176b2855625031e5781": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "photo",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "cover_photo",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "deleted_at",
+          "ordinal": 8,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT id, name, owner_id, description, photo, cover_photo, created_at, updated_at, deleted_at\n        FROM servers\n        WHERE owner_id = $1\n        "
+  },
+  "f117e5235dd7dab42958f980d402921fc0e031e1cc6f4c70b28c89c4bba214a1": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Uuid",
+          "Text",
+          "Text",
+          "Text",
+          "Timestamptz",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO servers (id, name, owner_id, description, photo, cover_photo, created_at, updated_at, deleted_at)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, now(), $8)\n        ON CONFLICT (id)\n        DO\n            UPDATE SET\n                name = EXCLUDED.name,\n                description = EXCLUDED.description,\n                photo = EXCLUDED.photo,\n                cover_photo = EXCLUDED.photo,\n                updated_at = now(),\n                deleted_at = EXCLUDED.deleted_at\n        WHERE\n            (servers.name, servers.description, servers.photo, servers.cover_photo, servers.deleted_at) IS DISTINCT FROM\n            (EXCLUDED.name, EXCLUDED.description, EXCLUDED.photo, EXCLUDED.cover_photo, EXCLUDED.deleted_at)\n\n        "
+  }
+}
