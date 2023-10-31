@@ -1,13 +1,12 @@
 use actix_web::web;
 use chrono::{Utc, DateTime};
-use sqlx::postgres::PgQueryResult;
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
-use tracing::Instrument;
 use crate::handlers::SignupFormData;
 
 pub const USERS_TABLE_NAME: &str = "users";
 
+#[derive(Clone, Debug)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
@@ -71,10 +70,11 @@ impl Into<User> for web::Form<SignupFormData> {
     }
 }
 
-pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult, Error> {
-    let query_span = tracing::info_span!(
-        "Upserting user details to database",
-    );
+#[tracing::instrument(
+    name = "Upserting user details to database",
+    skip(user, db_pool),
+)]
+pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
     sqlx::query!(
         r#"
         INSERT INTO users (id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts)
@@ -108,12 +108,25 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult,
         user.failed_attempts,
     )
     .execute(db_pool)
-    .instrument(query_span)
     .await
+    .map(|_| {
+        tracing::info!("UPSERT user {:?} query successful", user);
+    })
+    .map_err(|e| {
+        tracing::error!("UPSERT user {:?} failed: {:?}", user, e);
+        e
+    })
 }
 
+#[tracing::instrument(
+    name = "Getting user by id",
+    skip(id, db_pool),
+    fields(
+        user_id = %id
+    )
+)]
 pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
-    match sqlx::query!(
+    sqlx::query!(
         r#"
         SELECT id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts
         FROM users
@@ -122,26 +135,37 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
     )
     .fetch_one(db_pool)
     .await
-    {
-        Ok(user) => Ok(User::new(
-            user.id,
-            user.email,
-            user.handle,
-            user.name,
-            user.password,
-            user.profile_photo,
-            user.bio,
-            user.failed_attempts,
-            user.created_at,
-            user.updated_at,
-            user.deleted_at,
-        )),
-        Err(e) => Err(e),
-    }
+    .map(|u| {
+        tracing::info!("GET user by id {} successful", id);
+        User::new(
+            u.id,
+            u.email,
+            u.handle,
+            u.name,
+            u.password,
+            u.profile_photo,
+            u.bio,
+            u.failed_attempts,
+            u.created_at,
+            u.updated_at,
+            u.deleted_at,
+        )
+    })
+    .map_err(|e| {
+        tracing::error!("GET user by id {} failed: {:?}", id, e); 
+        e
+    })
 }
 
+#[tracing::instrument(
+    name = "Getting user by id",
+    skip(email, db_pool),
+    fields(
+        user_email = %email
+    )
+)]
 pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, Error> {
-    match sqlx::query!(
+    sqlx::query!(
         r#"
         SELECT id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts
         FROM users
@@ -150,20 +174,24 @@ pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, 
     )
         .fetch_one(db_pool)
         .await
-        {
-            Ok(user) => Ok(User::new(
-                user.id,
-                user.email,
-                user.handle,
-                user.name,
-                user.password,
-                user.profile_photo,
-                user.bio,
-                user.failed_attempts,
-                user.created_at,
-                user.updated_at,
-                user.deleted_at,
-            )),
-            Err(e) => Err(e)
-        }
+        .map(|u| {
+            tracing::info!("GET user by email {} successful", email);
+            User::new(
+                u.id,
+                u.email,
+                u.handle,
+                u.name,
+                u.password,
+                u.profile_photo,
+                u.bio,
+                u.failed_attempts,
+                u.created_at,
+                u.updated_at,
+                u.deleted_at,
+            )
+        })
+        .map_err(|e| {
+            tracing::error!("GET user by email {} failed: {:?}", email, e);
+            e
+        })
 }
