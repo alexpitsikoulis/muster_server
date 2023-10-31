@@ -29,11 +29,7 @@ pub fn validate_and_hash_password(password: Secret<String>) -> Result<String> {
                 unencoded
             };
         
-            let config = if std::env::var("APP_ENVIRONMENT").is_ok_and(|env| Env::from(env) == Env::Test) {
-                Config::original()
-            } else {
-                Config::default()
-            };
+            let config = Config::original();
             
             match argon2::hash_encoded(password.expose_secret().as_bytes(), &salt, &config) {
                 Ok(hash) => Ok(hash),
