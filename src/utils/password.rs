@@ -1,5 +1,6 @@
 use rand::RngCore;
 use argon2::{self, Config};
+use secrecy::{Secret, ExposeSecret};
 
 #[derive(Debug)]
 pub enum PasswordValidationError {
@@ -14,7 +15,7 @@ pub enum PasswordValidationError {
 
 type Result<T> = std::result::Result<T, PasswordValidationError>;
 
-pub fn validate_and_hash_password(password: String) -> Result<String> {
+pub fn validate_and_hash_password(password: Secret<String>) -> Result<String> {
     match validate_password(password.clone()) {
         Ok(()) => {
             let salt = {
@@ -30,7 +31,7 @@ pub fn validate_and_hash_password(password: String) -> Result<String> {
                 Config::default()
             };
             
-            match argon2::hash_encoded(password.as_bytes(), &salt, &config) {
+            match argon2::hash_encoded(password.expose_secret().as_bytes(), &salt, &config) {
                 Ok(hash) => Ok(hash),
                 Err(e) => Err(PasswordValidationError::ArgonErr(e)),
             }
@@ -39,16 +40,16 @@ pub fn validate_and_hash_password(password: String) -> Result<String> {
     } 
 }
 
-pub fn compare_password_hash(password: String, hash: String) -> bool {
-    argon2::verify_encoded(&hash, password.as_bytes()).unwrap()
+pub fn compare_password_hash(password: Secret<String>, hash: String) -> bool {
+    argon2::verify_encoded(&hash, password.expose_secret().as_bytes()).unwrap()
 }
 
-pub fn validate_password(password: String) -> Result<()> {
-    if password.len() < 8 {
+pub fn validate_password(password: Secret<String>) -> Result<()> {
+    if password.expose_secret().len() < 8 {
         return Err(PasswordValidationError::PwdTooShort);
     }
 
-    if password.len() > 64 {
+    if password.expose_secret().len() > 64 {
         return Err(PasswordValidationError::PwdTooLong);
     }
 
@@ -57,7 +58,7 @@ pub fn validate_password(password: String) -> Result<()> {
     let mut has_number = false;
     let mut has_char = false;
 
-    for b in password.as_bytes() {
+    for b in password.expose_secret().as_bytes() {
         if has_lower && has_upper && has_number && has_char {
             break;
         }

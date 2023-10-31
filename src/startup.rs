@@ -7,15 +7,15 @@ use crate::handlers::{
 use actix_web::{HttpServer, App};
 use actix_web::web::{get, post, Data};
 use actix_web::dev::Server;
-use actix_web::middleware::Logger;
 use sqlx::PgPool;
 use std::net::TcpListener;
+use tracing_actix_web::TracingLogger;
 
 pub fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error> {
     let db_pool = Data::new(db_pool);
     let server = HttpServer::new(move || {
         App::new()
-            .wrap(Logger::default())
+            .wrap(TracingLogger::default())
             .route("/health-check", get().to(health_check))
             .route("/signup", post().to(signup))
             .route("/login", post().to(login))

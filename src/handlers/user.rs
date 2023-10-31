@@ -1,6 +1,6 @@
 use actix_web::{HttpResponse, web};
 use sqlx::PgPool;
-use uuid::Uuid;
+use secrecy::Secret;
 use crate::utils::{validate_and_hash_password, compare_password_hash, PasswordValidationError, generate_token};
 use crate::storage::{upsert_user, get_user_by_email, User};
 
@@ -8,14 +8,13 @@ use crate::storage::{upsert_user, get_user_by_email, User};
 pub struct SignupFormData {
     pub email: String,
     pub handle: String,
-    pub password: String,
+    pub password: Secret<String>,
 }
 
 #[tracing::instrument(
     name = "Signing up new user",
     skip(form, db_pool),
     fields(
-        request_id = %Uuid::new_v4(),
         user_email = %form.email,
         user_handle = %form.handle,
     )
@@ -51,14 +50,13 @@ pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>)
 #[derive(serde::Deserialize)]
 pub struct LoginFormData {
     email: String,
-    password: String,
+    password: Secret<String>,
 }
 
 #[tracing::instrument(
     name = "Logging in user",
     skip(form, db_pool),
     fields(
-        request_id = %Uuid::new_v4(),
         user_email = %form.email,
     )
 )]
@@ -69,7 +67,7 @@ pub async fn login(form: web::Form<LoginFormData>, db_pool: web::Data<PgPool>) -
             if user.failed_attempts >= 10 {
                 return HttpResponse::Forbidden().body("Account is locked due to too many failed login attempts")
             };
-            let login_successful = compare_password_hash(form.password.clone(), user.password.clone());
+            let login_successful = compare_password_hash(form.password.clone(), user.password.to_string());
             if login_successful {
                 user.failed_attempts = 0;
             } else {

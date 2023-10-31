@@ -21,7 +21,6 @@ pub struct CreateServerRequestDataWithOwner {
     name = "Creating new server",
     skip(body, db_pool),
     fields(
-        request_id = %Uuid::new_v4(),
         server_name = %body.name,
     )
 )]
@@ -31,8 +30,8 @@ pub async fn create_server(body: web::Json<CreateServerRequestData>, db_pool: we
             let token =  match header.to_str() {
                 Ok(t) => t.to_string(),
                 Err(e) => {
-                    tracing::error!("500 - Authorization header could not be cast to string");
-                    return HttpResponse::BadRequest().body("Authorization header could not be cast to string");
+                    tracing::error!("500 - Authorization header could not be cast to string: {:?}", e);
+                    return HttpResponse::BadRequest().body(format!("Authorization header could not be cast to string: {:?}", e));
                 }
             };
             match get_claims_from_token(token) {

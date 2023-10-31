@@ -2,6 +2,7 @@ use actix_web::web;
 use chrono::{Utc, DateTime};
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
+use secrecy::ExposeSecret;
 use crate::handlers::SignupFormData;
 
 pub const USERS_TABLE_NAME: &str = "users";
@@ -59,7 +60,7 @@ impl Into<User> for web::Form<SignupFormData> {
             self.email.clone(),
             self.handle.clone(),
             None,
-            self.password.clone(),
+            self.password.clone().expose_secret().to_string(),
             None,
             None,
             0,

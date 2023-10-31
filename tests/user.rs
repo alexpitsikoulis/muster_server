@@ -1,4 +1,5 @@
 mod utils;
+use secrecy::Secret;
 use utils::{spawn_app, clear_database};
 use muttr_server::utils::compare_password_hash;
 use muttr_server::storage::USERS_TABLE_NAME;
@@ -28,7 +29,7 @@ async fn test_signup_success() {
         Ok(user) => {
             assert_eq!("alex.pitsikoulis", user.handle);
             assert_eq!("alex.pitsikoulis@youwish.com", user.email);
-            assert!(compare_password_hash(String::from("N0neofyourbus!ness"), user.password));
+            assert!(compare_password_hash(Secret::new("N0neofyourbus!ness".into()), user.password));
         },
         Err(e) => {
             panic!("DB query failed: {}", e);

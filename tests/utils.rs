@@ -4,6 +4,7 @@ use muttr_server::{
     utils::{create_subscriber, init_subscriber, validate_and_hash_password},
     storage::{User, upsert_user},
 };
+use secrecy::{Secret, ExposeSecret};
 use std::net::TcpListener;
 use sqlx::{PgPool, PgConnection, Executor, Connection};
 use uuid::Uuid;
@@ -53,7 +54,7 @@ pub async fn spawn_app() -> TestApp {
 
 pub async fn configure_database(config: &DatabaseConfig) -> PgPool {
     let mut connection = PgConnection::connect(
-            &config.test_connection_string(),
+            &config.test_connection_string().expose_secret(),
         )
         .await
         .expect("Failed to connect to Postgres");
@@ -63,7 +64,7 @@ pub async fn configure_database(config: &DatabaseConfig) -> PgPool {
         .await
         .expect("Failed to create database");
 
-    let connection_pool = PgPool::connect(&config.connection_string())
+    let connection_pool = PgPool::connect(&config.connection_string().expose_secret())
         .await
         .expect("Failed to connect to Postgres");
 
@@ -96,7 +97,7 @@ pub async fn insert_user(db_pool: &PgPool, user: Option<User>) -> User {
             )
          }
     };
-    inserted_user.password = match validate_and_hash_password(inserted_user.password) {
+    inserted_user.password = match validate_and_hash_password(Secret::new(inserted_user.password)) {
         Ok(hash) => hash,
         Err(e) => panic!("Password validation failed: {:?}", e),
     };

@@ -1,4 +1,5 @@
 use std::net::TcpListener;
+use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use muttr_server::{
     startup::run,
@@ -16,7 +17,7 @@ async fn main() -> std::io::Result<()> {
     init_subscriber(subscriber);
     let config = get_config(Some("config.yaml")).expect("Failed to read config file");
     let connection_pool = PgPool::connect(
-        &config.database.connection_string()
+        &config.database.connection_string().expose_secret()
         )
         .await
         .expect("Failed to connect to Postgres");
