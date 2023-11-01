@@ -1,13 +1,12 @@
-use std::env;
-
 use rand::RngCore;
 use argon2::{self, Config};
 use secrecy::{Secret, ExposeSecret};
 
-use crate::config::Env;
-
 #[derive(Debug)]
-pub enum PasswordValidationError {
+pub enum CredentialValidationError {
+    HandleEmpty,
+    HandleTooLong,
+    HandleContainsForbiddenChars(char),
     PwdTooShort,
     PwdTooLong,
     PwdMissingLowercase,
@@ -17,7 +16,26 @@ pub enum PasswordValidationError {
     ArgonErr(argon2::Error),
 }
 
-type Result<T> = std::result::Result<T, PasswordValidationError>;
+type Result<T> = std::result::Result<T, CredentialValidationError>;
+
+pub fn is_valid_handle(handle: String) -> Result<()> {
+    let forbidden_characters = ['/', '(', ')', '"', '\'', '<', '>', '\\', '{', '}'];
+    let mut forbidden_character: Option<char> = None;
+    if handle.trim().is_empty() {
+        return Err(CredentialValidationError::HandleEmpty)
+    } else if handle.len() > 20 {
+        return Err(CredentialValidationError::HandleTooLong)
+    } else if handle
+        .chars()
+        .any(|c| {
+            forbidden_character = Some(c);
+            forbidden_characters.contains(&c)
+        }) {
+            return Err(CredentialValidationError::HandleContainsForbiddenChars(forbidden_character.unwrap()))
+    }
+    Ok(())
+}
+
 
 pub fn validate_and_hash_password(password: Secret<String>) -> Result<String> {
     match validate_password(password.clone()) {
@@ -33,7 +51,7 @@ pub fn validate_and_hash_password(password: Secret<String>) -> Result<String> {
             
             match argon2::hash_encoded(password.expose_secret().as_bytes(), &salt, &config) {
                 Ok(hash) => Ok(hash),
-                Err(e) => Err(PasswordValidationError::ArgonErr(e)),
+                Err(e) => Err(CredentialValidationError::ArgonErr(e)),
             }
         },
         Err(e) => Err(e),
@@ -46,11 +64,11 @@ pub fn compare_password_hash(password: Secret<String>, hash: String) -> bool {
 
 pub fn validate_password(password: Secret<String>) -> Result<()> {
     if password.expose_secret().len() < 8 {
-        return Err(PasswordValidationError::PwdTooShort);
+        return Err(CredentialValidationError::PwdTooShort);
     }
 
     if password.expose_secret().len() > 64 {
-        return Err(PasswordValidationError::PwdTooLong);
+       return Err(CredentialValidationError::PwdTooLong);
     }
 
     let mut has_lower = false;
@@ -81,16 +99,16 @@ pub fn validate_password(password: Secret<String>) -> Result<()> {
     };
 
     if !has_lower {
-        return Err(PasswordValidationError::PwdMissingLowercase);
+        return Err(CredentialValidationError::PwdMissingLowercase);
     }
     if !has_upper {
-        return Err(PasswordValidationError::PwdMissingUppercase);
+        return Err(CredentialValidationError::PwdMissingUppercase);
     }
     if !has_number {
-        return Err(PasswordValidationError::PwdMissingNumber);
+        return Err(CredentialValidationError::PwdMissingNumber);
     }
     if !has_char {
-        return Err(PasswordValidationError::PwdMissingChar);
+        return Err(CredentialValidationError::PwdMissingChar);
     }
 
     Result::Ok(())

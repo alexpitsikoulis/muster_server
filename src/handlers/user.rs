@@ -1,7 +1,7 @@
 use actix_web::{HttpResponse, web};
 use sqlx::PgPool;
 use secrecy::Secret;
-use crate::utils::{validate_and_hash_password, compare_password_hash, PasswordValidationError, generate_token};
+use crate::utils::{validate_and_hash_password, compare_password_hash, CredentialValidationError, generate_token, is_valid_handle};
 use crate::storage::{upsert_user, get_user_by_email, User};
 
 #[derive(serde::Deserialize, Clone)]
@@ -20,6 +20,9 @@ pub struct SignupFormData {
     )
 )]
 pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
+    if let Err(e) = is_valid_handle(form.handle.clone()) {
+        return HttpResponse::BadRequest().body(format!("User handle is not valid: {:?}", e))
+    }
     match validate_and_hash_password(form.password.clone()) {
         Ok(password_hash) => {
             let mut user_data: User = form.into();
@@ -32,14 +35,18 @@ pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>)
         },
         Err(e) => {
             match e {
-                PasswordValidationError::PwdTooShort => HttpResponse::BadRequest().body("Password too short, must be at least 8 characters long"),
-                PasswordValidationError::PwdTooLong => HttpResponse::BadRequest().body("Password too long, must be no longer than 64 characters"),
-                PasswordValidationError::PwdMissingChar => HttpResponse::BadRequest().body("Password must contain at least one special character (\" # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ _ ` { | } ~ )"),
-                PasswordValidationError::PwdMissingNumber => HttpResponse::BadRequest().body("Password must contain at least one number"),
-                PasswordValidationError::PwdMissingUppercase => HttpResponse::BadRequest().body("Password must contain at least one uppercase letter"),
-                PasswordValidationError::PwdMissingLowercase => HttpResponse::BadRequest().body("Password must contain at least one lowercase letter"),
-                PasswordValidationError::ArgonErr(e) => {
+                CredentialValidationError::PwdTooShort => HttpResponse::BadRequest().body("Password too short, must be at least 8 characters long"),
+                CredentialValidationError::PwdTooLong => HttpResponse::BadRequest().body("Password too long, must be no longer than 64 characters"),
+                CredentialValidationError::PwdMissingChar => HttpResponse::BadRequest().body("Password must contain at least one special character (\" # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ _ ` { | } ~ )"),
+                CredentialValidationError::PwdMissingNumber => HttpResponse::BadRequest().body("Password must contain at least one number"),
+                CredentialValidationError::PwdMissingUppercase => HttpResponse::BadRequest().body("Password must contain at least one uppercase letter"),
+                CredentialValidationError::PwdMissingLowercase => HttpResponse::BadRequest().body("Password must contain at least one lowercase letter"),
+                CredentialValidationError::ArgonErr(e) => {
                     tracing::error!("Argon2 failed to validate password: {:?}", e);
+                    HttpResponse::InternalServerError().finish()
+                },
+                e => {
+                    tracing::error!("Unexpected error type from password validation: {:?}", e);
                     HttpResponse::InternalServerError().finish()
                 }
             }

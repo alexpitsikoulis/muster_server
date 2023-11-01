@@ -1,7 +1,7 @@
-mod password;
+mod credentials;
 mod jwt;
 mod telemetry;
 
-pub use password::*;
+pub use credentials::*;
 pub use jwt::*;
 pub use telemetry::*;
