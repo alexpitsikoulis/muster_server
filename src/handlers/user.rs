@@ -1,8 +1,11 @@
 use actix_web::{HttpResponse, web};
 use sqlx::PgPool;
 use secrecy::Secret;
-use crate::utils::{validate_and_hash_password, compare_password_hash, CredentialValidationError, generate_token, is_valid_handle};
-use crate::storage::{upsert_user, get_user_by_email, User};
+use crate::{
+    domain::user::{NewUser, UserPassword},
+    storage::{upsert_user, get_user_by_email, User},
+    utils::generate_token,
+};
 
 #[derive(serde::Deserialize, Clone)]
 pub struct SignupFormData {
@@ -20,37 +23,22 @@ pub struct SignupFormData {
     )
 )]
 pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    if let Err(e) = is_valid_handle(form.handle.clone()) {
-        return HttpResponse::BadRequest().body(format!("User handle is not valid: {:?}", e))
-    }
-    match validate_and_hash_password(form.password.clone()) {
-        Ok(password_hash) => {
-            let mut user_data: User = form.into();
-            user_data.password = password_hash;
-            match upsert_user(db_pool.get_ref(), &user_data).await
-            {
-                Ok(_) => HttpResponse::Ok().finish() ,
-                Err(_) => HttpResponse::InternalServerError().finish(),
-            }
-        },
+    let new_user = match NewUser::try_parse(form) {
+        Ok(u) => u,
         Err(e) => {
-            match e {
-                CredentialValidationError::PwdTooShort => HttpResponse::BadRequest().body("Password too short, must be at least 8 characters long"),
-                CredentialValidationError::PwdTooLong => HttpResponse::BadRequest().body("Password too long, must be no longer than 64 characters"),
-                CredentialValidationError::PwdMissingChar => HttpResponse::BadRequest().body("Password must contain at least one special character (\" # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ _ ` { | } ~ )"),
-                CredentialValidationError::PwdMissingNumber => HttpResponse::BadRequest().body("Password must contain at least one number"),
-                CredentialValidationError::PwdMissingUppercase => HttpResponse::BadRequest().body("Password must contain at least one uppercase letter"),
-                CredentialValidationError::PwdMissingLowercase => HttpResponse::BadRequest().body("Password must contain at least one lowercase letter"),
-                CredentialValidationError::ArgonErr(e) => {
-                    tracing::error!("Argon2 failed to validate password: {:?}", e);
-                    HttpResponse::InternalServerError().finish()
-                },
-                e => {
-                    tracing::error!("Unexpected error type from password validation: {:?}", e);
-                    HttpResponse::InternalServerError().finish()
-                }
-            }
-        }
+            tracing::error!("Failed to validate new user: {:?}", e);
+            return e.handle_http()
+        },
+    };
+
+    let user: User = new_user.into();
+
+    match upsert_user(db_pool.get_ref(), &user).await {
+        Ok(()) => {
+            tracing::info!("User {:?} successfully inserted to database", user);
+            HttpResponse::Ok().finish()
+        },
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
 
@@ -74,7 +62,7 @@ pub async fn login(form: web::Form<LoginFormData>, db_pool: web::Data<PgPool>) -
             if user.failed_attempts >= 10 {
                 return HttpResponse::Forbidden().body("Account is locked due to too many failed login attempts")
             };
-            let login_successful = compare_password_hash(form.password.clone(), user.password.to_string());
+            let login_successful = UserPassword::compare(form.password.clone(), user.password.to_string());
             if login_successful {
                 user.failed_attempts = 0;
             } else {

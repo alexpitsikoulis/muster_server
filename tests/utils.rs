@@ -1,7 +1,8 @@
 use chrono::Utc;
 use muttr_server::{
+    domain::user::UserPassword,
     config::{Config, DatabaseConfig},
-    utils::{create_subscriber, init_subscriber, validate_and_hash_password},
+    utils::{create_subscriber, init_subscriber},
     storage::{User, upsert_user},
 };
 use secrecy::Secret;
@@ -95,8 +96,8 @@ pub async fn insert_user(db_pool: &PgPool, user: Option<User>) -> User {
             )
          }
     };
-    inserted_user.password = match validate_and_hash_password(Secret::new(inserted_user.password)) {
-        Ok(hash) => hash,
+    inserted_user.password = match UserPassword::try_parse(Secret::new(inserted_user.password)) {
+        Ok(hash) => hash.to_string(),
         Err(e) => panic!("Password validation failed: {:?}", e),
     };
     

@@ -1,5 +1,4 @@
 use sqlx::{PgPool, Error};
-use sqlx::postgres::PgQueryResult;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use crate::handlers::CreateServerRequestDataWithOwner;
@@ -74,7 +73,7 @@ pub async fn upsert_server(db_pool: &PgPool, server: &Server) -> Result<(), Erro
     sqlx::query!(
         r#"
         INSERT INTO servers (id, name, owner_id, description, photo, cover_photo, created_at, updated_at, deleted_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, now(), $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (id)
         DO
             UPDATE SET
@@ -96,6 +95,7 @@ pub async fn upsert_server(db_pool: &PgPool, server: &Server) -> Result<(), Erro
         server.photo,
         server.cover_photo,
         server.created_at,
+        server.updated_at,
         server.deleted_at,
     )
     .execute(db_pool)

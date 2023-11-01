@@ -1,14 +1,12 @@
 mod utils;
-use utils::{spawn_app, clear_database, insert_user};
-use muttr_server::storage::SERVERS_TABLE_NAME;
-use actix_web::web::JsonBody;
+use utils::{spawn_app, insert_user};
 
 #[tokio::test]
 async fn test_create_server_success() {
     let app = spawn_app().await;
     let client = reqwest::Client::new();
 
-    let user = insert_user(&app.db_pool, None).await;
+    let _user = insert_user(&app.db_pool, None).await;
 
     let mut body = "email=testuser%40youwish.com&password=Testpassw0rd!";
     let mut response = client

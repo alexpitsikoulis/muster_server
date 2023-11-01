@@ -1,9 +1,6 @@
-use actix_web::web;
 use chrono::{Utc, DateTime};
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
-use secrecy::ExposeSecret;
-use crate::handlers::SignupFormData;
 
 pub const USERS_TABLE_NAME: &str = "users";
 
@@ -49,25 +46,6 @@ impl User {
             updated_at,
             deleted_at,
         }
-    }
-}
-
-impl Into<User> for web::Form<SignupFormData> {
-    fn into(self) -> User {
-        let now = Utc::now();
-        User::new(
-            Uuid::new_v4(),
-            self.email.clone(),
-            self.handle.clone(),
-            None,
-            self.password.clone().expose_secret().to_string(),
-            None,
-            None,
-            0,
-            now,
-            now,
-            None,
-        )
     }
 }
 

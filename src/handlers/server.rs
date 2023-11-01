@@ -1,8 +1,10 @@
 use actix_web::{HttpResponse, web, HttpRequest};
 use sqlx::PgPool;
-use uuid::{Uuid, uuid};
-use crate::storage::{upsert_server, Server};
-use crate::utils::{get_claims_from_token, Claims};
+use uuid::Uuid;
+use crate::{
+    storage::{upsert_server, Server},
+    utils::get_claims_from_token,
+};
 
 #[derive(serde::Deserialize)]
 pub struct CreateServerRequestData {

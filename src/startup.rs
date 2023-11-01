@@ -1,15 +1,17 @@
+use sqlx::PgPool;
+use std::net::TcpListener;
+use tracing_actix_web::TracingLogger;
+use actix_web::{
+    HttpServer, App,
+    dev::Server,
+    web::{get, post, Data},
+};
 use crate::handlers::{
     health_check,
     signup,
     login,
     create_server,
 };
-use actix_web::{HttpServer, App};
-use actix_web::web::{get, post, Data};
-use actix_web::dev::Server;
-use sqlx::PgPool;
-use std::net::TcpListener;
-use tracing_actix_web::TracingLogger;
 
 pub fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error> {
     let db_pool = Data::new(db_pool);

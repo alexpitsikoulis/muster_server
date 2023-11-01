@@ -1,8 +1,10 @@
 mod utils;
 use secrecy::Secret;
 use utils::{spawn_app, clear_database};
-use muttr_server::utils::compare_password_hash;
-use muttr_server::storage::USERS_TABLE_NAME;
+use muttr_server::{
+    domain::user::UserPassword,
+    storage::USERS_TABLE_NAME,
+};
 
 
 #[tokio::test]
@@ -29,7 +31,7 @@ async fn test_signup_success() {
         Ok(user) => {
             assert_eq!("alex.pitsikoulis", user.handle);
             assert_eq!("alex.pitsikoulis@youwish.com", user.email);
-            assert!(compare_password_hash(Secret::new("N0neofyourbus!ness".into()), user.password));
+            assert!(UserPassword::compare(Secret::new("N0neofyourbus!ness".into()), user.password));
         },
         Err(e) => {
             panic!("DB query failed: {}", e);
