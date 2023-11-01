@@ -89,10 +89,10 @@ impl Into<User> for NewUser {
         let now = Utc::now();
         User::new(
             Uuid::new_v4(),
-            self.email.to_string(),
-            self.handle.to_string(),
+            self.email.inner_ref().to_string(),
+            self.handle.inner_ref().to_string(),
             None,
-            self.password.to_string(),
+            self.password.inner_ref().to_string(),
             None,
             None,
             0,

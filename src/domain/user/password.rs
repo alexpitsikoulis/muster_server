@@ -114,7 +114,7 @@ impl UserPassword {
         argon2::verify_encoded(&hash, password.expose_secret().as_bytes()).unwrap()
     }
 
-    pub fn to_string(&self) -> String {
-        self.0.clone()
+    pub fn inner_ref(&self) -> &str {
+        &self.0
     }
 }
