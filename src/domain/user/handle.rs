@@ -5,6 +5,8 @@ pub enum HandleValidationErr {
     HandleContainsWhiteSpace,
     HandleContainsForbiddenChars(char),
 }
+
+#[derive(Debug)]
 pub struct UserHandle(String);
 
 impl UserHandle {
@@ -35,5 +37,60 @@ impl UserHandle {
 impl AsRef<str> for UserHandle {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::user::*;
+    use claim::{assert_err, assert_ok};
+
+    #[test]
+    fn a_20_grapheme_long_handle_is_valid() {
+        let handle = "A".repeat(20);
+        assert_ok!(UserHandle::parse(handle));
+    }
+
+    #[test]
+    fn a_handle_longer_than_20_grapheme_is_rejected() {
+        let handle = "A".repeat(21);
+        assert_err!(UserHandle::parse(handle));
+    }
+
+    #[test]
+    fn whitespace_only_handles_rejected() {
+        let handles = &[
+            "\t",
+            " ",
+            "   ",
+            "\n",
+            "
+            ",
+        ];
+
+        for handle in handles {
+            assert_err!(UserHandle::parse(handle.to_string()));
+        }
+    }
+
+    #[test]
+    fn empty_string_handle_rejected() {
+        let handles = &["/", "(", ")", "'", "\"", "<", ">", "\\", "{", "}"];
+        for handle in handles {
+            assert_err!(UserHandle::parse(handle.to_string()));
+        }
+    }
+
+    #[test]
+    fn valid_handle_parsed_successfully() {
+        let handles = &[
+            "alexpitsikoulis",
+            "alex.pitsikoulis",
+            "AlexPitsikoulis",
+            "ALEX--PITSIKOULIS",
+        ];
+        for handle in handles {
+            assert_ok!(UserHandle::parse(handle.to_string()));
+        }
     }
 }

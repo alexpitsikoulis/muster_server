@@ -102,3 +102,4 @@ impl Into<User> for NewUser {
         )
     }
 }
+

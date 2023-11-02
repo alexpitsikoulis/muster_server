@@ -1,5 +1,7 @@
 mod utils;
+
 use utils::spawn_app;
+use claim::assert_some_eq;
 
 #[tokio::test]
 async fn test_health_check() {
@@ -13,5 +15,5 @@ async fn test_health_check() {
         .expect("Failed to execute request");
     
     assert!(response.status().is_success());
-    assert_eq!(Some(0), response.content_length());
+    assert_some_eq!(response.content_length(), 0);
 }

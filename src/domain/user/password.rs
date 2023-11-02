@@ -13,6 +13,7 @@ pub enum PasswordValidationErr {
     ArgonErr(argon2::Error),
 }
 
+#[derive(Debug)]
 pub struct UserPassword(String);
 
 impl UserPassword {
@@ -97,5 +98,89 @@ impl UserPassword {
 impl AsRef<str> for UserPassword {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::user::UserPassword;
+    use claim::{assert_err, assert_ok};
+    use secrecy::Secret;
+
+    #[test]
+    fn fails_when_less_than_8_grapheme() {
+        let password = Secret::new("P@ssw0r".to_string());
+        assert_err!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn fails_when_more_than_64_grapheme() {
+        let filler = "A".repeat(60);
+        let password = Secret::new(format!("P@ss1{}", filler).to_string());
+        assert_err!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn fails_when_no_uppercase() {
+        let password = Secret::new("n0neofyourbus!ness".to_string());
+        assert_err!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn fails_when_no_lowercase() {
+        let password = Secret::new("N0NEOFYOURBUS!NESS".to_string());
+        assert_err!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn fails_when_no_number() {
+        let password = Secret::new("Noneofyourbus!ness".to_string());
+        assert_err!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn fails_when_no_special_char() {
+        let password = Secret::new("N0neofyourbusiness".to_string());
+        assert_err!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn valid_password_parses_successfully() {
+        let passwords = &[
+            "N0neofyourbus!ness",
+            "N0neofyourbusiness\"",
+            "N0neofyourbusiness#",
+            "N0neofyourbusiness$",
+            "N0neofyourbusiness%",
+            "N0neofyourbusiness&",
+            "N0neofyourbusiness'",
+            "N0neofyourbusiness(",
+            "N0neofyourbusiness)",
+            "N0neofyourbusiness*",
+            "N0neofyourbusiness+",
+            "N0neofyourbusiness-",
+            "N0neofyourbusiness.",
+            "N0neofyourbusiness/",
+            "N0neofyourbusiness:",
+            "N0neofyourbusiness;",
+            "N0neofyourbusiness<",
+            "N0neofyourbusiness=",
+            "N0neofyourbusiness>",
+            "N0neofyourbusiness?",
+            "N0neofyourbusiness@",
+            "N0neofyourbusiness[",
+            "N0neofyourbusiness]",
+            "N0neofyourbusiness\\",
+            "N0neofyourbusiness^",
+            "N0neofyourbusiness_",
+            "N0neofyourbusiness`",
+            "N0neofyourbusiness{",
+            "N0neofyourbusiness|",
+            "N0neofyourbusiness}",
+            "N0neofyourbusiness~",
+        ];
+        for password in passwords {
+            assert_ok!(UserPassword::parse(Secret::new(password.to_string())));
+        }
     }
 }
