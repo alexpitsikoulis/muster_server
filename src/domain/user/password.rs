@@ -113,8 +113,10 @@ impl UserPassword {
     pub fn compare(password: Secret<String>, hash: String) -> bool {
         argon2::verify_encoded(&hash, password.expose_secret().as_bytes()).unwrap()
     }
+}
 
-    pub fn inner_ref(&self) -> &str {
+impl AsRef<str> for UserPassword {
+    fn as_ref(&self) -> &str {
         &self.0
     }
 }

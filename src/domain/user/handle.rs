@@ -49,8 +49,10 @@ impl UserHandle {
         }
         Ok(UserHandle(handle))
     }
+}
 
-    pub fn inner_ref(&self) -> &str {
+impl AsRef<str> for UserHandle {
+    fn as_ref(&self) -> &str {
         &self.0
     }
 }

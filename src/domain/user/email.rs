@@ -23,11 +23,13 @@ impl UserEmail {
         }
     }
 
-    pub fn inner_ref(&self) -> &str {
-        &self.0
-    }
-
     fn email_regex() -> Regex {
         Regex::new(r"^[a-zA-Z0-9]{1}[\w\.\-]*[a-zA-Z]+@[a-zA-Z0-9]{1}\.?(([\w\-]+)(\.?[a-zA-Z0-9]))+\.[a-zA-Z0-9]{2,4}$").unwrap()
+    }
+}
+
+impl AsRef<str> for UserEmail {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }

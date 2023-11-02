@@ -97,7 +97,7 @@ pub async fn insert_user(db_pool: &PgPool, user: Option<User>) -> User {
          }
     };
     inserted_user.password = match UserPassword::try_parse(Secret::new(inserted_user.password)) {
-        Ok(hash) => hash.inner_ref().to_string(),
+        Ok(hash) => hash.as_ref().to_string(),
         Err(e) => panic!("Password validation failed: {:?}", e),
     };
     
