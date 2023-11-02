@@ -8,14 +8,7 @@ pub enum EmailValidationErr {
 pub struct UserEmail(String);
 
 impl UserEmail {
-    pub fn parse(email: String) -> Self {
-        match Self::try_parse(email) {
-            Ok(e) => e,
-            Err(e) => panic!("Email validation failed: {:?}", e),
-        }
-    }
-    
-    pub fn try_parse(email: String) -> Result<Self, EmailValidationErr> {
+    pub fn parse(email: String) -> Result<Self, EmailValidationErr> {
         if Self::email_regex().is_match(email.as_str()) {
             Ok(Self(email))
         } else {

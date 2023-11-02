@@ -16,28 +16,7 @@ pub enum PasswordValidationErr {
 pub struct UserPassword(String);
 
 impl UserPassword {
-    pub fn parse(password: Secret<String>) -> Self {
-        match Self::validate(password.clone()) {
-            Ok(()) => {
-                let salt = {
-                    let mut unencoded = [0u8; 16];
-                    let mut rng = rand::thread_rng();
-                    rng.fill_bytes(&mut unencoded);
-                    unencoded
-                };
-            
-                let config = Config::original();
-                
-                match argon2::hash_encoded(password.expose_secret().as_bytes(), &salt, &config) {
-                    Ok(hash) => Self(hash),
-                    Err(e) => panic!("Password hash failed: {:?}", e),
-                }
-            },
-            Err(e) => panic!("Password is invalid: {:?}", e),
-        }
-    }
-
-    pub fn try_parse(password: Secret<String>) -> Result<Self, PasswordValidationErr> {
+    pub fn parse(password: Secret<String>) -> Result<Self, PasswordValidationErr> {
         match Self::validate(password.clone()) {
             Ok(()) => {
                 let salt = {

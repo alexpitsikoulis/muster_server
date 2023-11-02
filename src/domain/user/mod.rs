@@ -67,15 +67,15 @@ impl NewUser {
     }
 
     pub fn try_parse(form: Form<SignupFormData>) -> Result<Self, UserValidationErr>  {
-        let email = match UserEmail::try_parse(form.email.clone()) {
+        let email = match UserEmail::parse(form.email.clone()) {
             Ok(e) => e,
             Err(e) => return Err(UserValidationErr::EmailValidationErr(e)),
         };
-        let handle = match UserHandle::try_parse(form.handle.clone()) {
+        let handle = match UserHandle::parse(form.handle.clone()) {
             Ok(h) => h,
             Err(e) => return Err(UserValidationErr::HandleValidationErr(e)),
         };
-        let password = match UserPassword::try_parse(form.password.clone()) {
+        let password = match UserPassword::parse(form.password.clone()) {
             Ok(p) => p,
             Err(e) => return Err(UserValidationErr::PasswordValidationErr(e)),
         };

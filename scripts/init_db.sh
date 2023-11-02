@@ -40,7 +40,7 @@ else
 fi
 
 while true ; do
-    if [ -x "$(command docker exec postgres-muttr psql -U postgres -c \"\q\")"]; then
+    if [ -x "$(command docker exec postgres-muttr psql -U postgres -c \"\\q\")"]; then
         DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
         break
     else
