@@ -5,6 +5,7 @@ use muttr_server::{
     domain::user::UserPassword,
     storage::USERS_TABLE_NAME,
 };
+use crate::utils::insert_user;
 
 
 #[tokio::test]
@@ -93,17 +94,12 @@ async fn test_signup_failed_400() {
 #[tokio::test]
 async fn test_login_success() {
     let app = spawn_app().await;
+    
+    let _user = insert_user(&app.db_pool, true).await ;
+    
     let client = reqwest::Client::new();
-    let mut body = "handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness";
-    client
-        .post(&format!("{}/signup", app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
 
-    body = "email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness";
+    let body = "email=testuser%40youwish.com&password=Testpassw0rd!";
     let response = client
         .post(&format!("{}/login", app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -117,20 +113,15 @@ async fn test_login_success() {
 }
 
 #[tokio::test]
-async fn test_login_failure() {
+async fn test_login_failure_on_invalid_credentials() {
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
-    let mut body = "handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness";
-    client
-        .post(&format!("{}/signup", app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
 
-    body = "email=alex.pitsikoulis%40youwish.com&password=someotherpassword";
-    let response = client
+    let _user = insert_user(&app.db_pool, true);
+
+    let client = reqwest::Client::new();
+    
+    let mut body = "email=testuser%40youwish.com&password=someotherpassword";
+    let mut response = client
         .post(&format!("{}/login", app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
@@ -140,4 +131,37 @@ async fn test_login_failure() {
 
     assert_eq!(200, response.status());
     assert_eq!("false", response.headers().get("X-Login-Successful").expect("X-Login-Success header not present"));
+
+    body = "email=someotheremail%40test.com&password=Testpassw0rd1";
+    response = client
+        .post(&format!("{}/login", app.address))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(body)
+        .send()
+        .await
+        .expect("Failed to execute request");
+
+    assert_eq!(200, response.status());
+    assert_eq!("false", response.headers().get("X-Login-Successful").expect("X-Login-Success header not present"));
+}
+
+#[tokio::test]
+async fn test_login_failure_on_unconfirmed_email() {
+    let app = spawn_app().await;
+
+    let _user = insert_user(&app.db_pool, false).await;
+
+    let client = reqwest::Client::new();
+
+    let body = "email=testuser%40youwish.com&password=Testpassw0rd!";
+    let response = client
+        .post(&format!("{}/login", app.address))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(body)
+        .send()
+        .await
+        .expect("Failed to execute request");
+
+    assert_eq!(401, response.status());
+    assert_eq!("Account email has not been confirmed", response.text().await.expect("Failed to parse response body"));
 }

@@ -8,14 +8,11 @@ pub use password::{PasswordValidationErr, UserPassword, ALLOWED_PASSWORD_CHARS};
 use email::*;
 use handle::*;
 
-use actix_web::{web::Form, HttpResponse};
-use chrono::Utc;
-use uuid::Uuid;
-use crate::{
-    handlers::SignupFormData,
-    storage::User
+use actix_web::{
+    HttpResponse,
+    web:: Form,
 };
-
+use crate::handlers::SignupFormData;
 
 
 #[derive(Debug)]
@@ -58,8 +55,10 @@ pub struct NewUser {
     pub password: UserPassword,
 }
 
-impl NewUser {
-    pub fn parse(form: Form<SignupFormData>) -> Result<Self, UserValidationErr>  {
+impl TryFrom<Form<SignupFormData>> for NewUser {
+    type Error = UserValidationErr;
+
+    fn try_from(form: Form<SignupFormData>) -> Result<Self, Self::Error> {
         let email = match UserEmail::parse(form.email.clone()) {
             Ok(e) => e,
             Err(e) => return Err(UserValidationErr::EmailValidationErr(e)),
@@ -76,23 +75,3 @@ impl NewUser {
         Ok(NewUser{email, handle, password})
     }
 }
-
-impl Into<User> for NewUser {
-    fn into(self) -> User {
-        let now = Utc::now();
-        User::new(
-            Uuid::new_v4(),
-            self.email.as_ref().to_string(),
-            self.handle.as_ref().to_string(),
-            None,
-            self.password.as_ref().to_string(),
-            None,
-            None,
-            0,
-            now,
-            now,
-            None,
-        )
-    }
-}
-

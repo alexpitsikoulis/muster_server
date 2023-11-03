@@ -11,6 +11,10 @@ use sqlx::{PgPool, PgConnection, Executor, Connection};
 use uuid::Uuid;
 use once_cell::sync::Lazy;
 
+const TEST_USER_EMAIL: &str = "testuser@youwish.com";
+const TEST_USER_HANDLE: &str = "test.user";
+const TEST_USER_PASSWORD: &str = "Testpassw0rd!"; 
+
 static TRACING: Lazy<()> = Lazy::new(|| {
     let name = "test".to_string();
     let env_filter = "info".to_string();
@@ -76,33 +80,30 @@ pub async fn configure_database(config: &DatabaseConfig) -> PgPool {
 }
 
 #[allow(dead_code)]
-pub async fn insert_user(db_pool: &PgPool, user: Option<User>) -> User {
+pub async fn insert_user(db_pool: &PgPool, email_confirmed: bool) -> User {
     let now = Utc::now();
-    let mut inserted_user = match user {
-        Some(u) => u,
-        None => {
-            User::new(
-                Uuid::new_v4(),
-                "testuser@youwish.com".into(),
-                "alex.pitsikoulis".into(),
-                None,
-                "Testpassw0rd!".into(),
-                None,
-                None,
-                0,
-                now,
-                now,
-                None,
-            )
-         }
-    };
-    inserted_user.password = match UserPassword::parse(Secret::new(inserted_user.password)) {
+    let mut user = User::new(
+        Uuid::new_v4(),
+        TEST_USER_EMAIL.into(),
+        TEST_USER_HANDLE.into(),
+        None,
+        TEST_USER_PASSWORD.into(),
+        None,
+        None,
+        0,
+        email_confirmed,
+        now,
+        now,
+        None,
+    );
+
+    user.password = match UserPassword::parse(Secret::new(user.password)) {
         Ok(hash) => hash.as_ref().to_string(),
         Err(e) => panic!("Password validation failed: {:?}", e),
     };
     
-    match upsert_user(db_pool, &inserted_user).await {
-        Ok(_) => inserted_user,
+    match upsert_user(db_pool, &user).await {
+        Ok(_) => user,
         Err(e) => panic!("Failed to insert user: {:?}", e),
     }
 }

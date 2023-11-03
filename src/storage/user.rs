@@ -2,6 +2,8 @@ use chrono::{Utc, DateTime};
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
+use crate::domain::user::NewUser;
+
 pub const USERS_TABLE_NAME: &str = "users";
 
 #[derive(Clone, Debug)]
@@ -14,6 +16,7 @@ pub struct User {
     pub profile_photo: Option<String>,
     pub bio: Option<String>,
     pub failed_attempts: i16,
+    pub email_confirmed: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -29,6 +32,7 @@ impl User {
         profile_photo: Option<String>,
         bio: Option<String>,
         failed_attempts: i16,
+        email_confirmed: bool,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         deleted_at: Option<DateTime<Utc>>,
@@ -42,10 +46,31 @@ impl User {
             profile_photo,
             bio,
             failed_attempts,
+            email_confirmed,
             created_at,
             updated_at,
             deleted_at,
         }
+    }
+}
+
+impl From<NewUser> for User {
+    fn from(user: NewUser) -> Self {
+        let now = Utc::now();
+        User::new(
+            Uuid::new_v4(),
+            user.email.as_ref().to_string(),
+            user.handle.as_ref().to_string(),
+            None,
+            user.password.as_ref().to_string(),
+            None,
+            None,
+            0,
+            false,
+            now,
+            now,
+            None,
+        )
     }
 }
 
@@ -56,8 +81,8 @@ impl User {
 pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
     sqlx::query!(
         r#"
-        INSERT INTO users (id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO users (id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         ON CONFLICT (id)
         DO
             UPDATE SET
@@ -67,12 +92,13 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
                 password = EXCLUDED.password,
                 profile_photo = EXCLUDED.profile_photo,
                 bio = EXCLUDED.bio,
+                email_confirmed = EXCLUDED.email_confirmed,
                 updated_at = now(),
                 deleted_at = EXCLUDED.deleted_at,
                 failed_attempts = EXCLUDED.failed_attempts
             WHERE
-                (users.email, users.name, users.password, users.profile_photo, users.bio, users.deleted_at, users.failed_attempts) IS DISTINCT FROM
-                (EXCLUDED.email, EXCLUDED.name, EXCLUDED.password, EXCLUDED.profile_photo, EXCLUDED.bio, EXCLUDED.deleted_at, EXCLUDED.failed_attempts)
+                (users.email, users.name, users.password, users.profile_photo, users.bio, users.email_confirmed, users.deleted_at, users.failed_attempts) IS DISTINCT FROM
+                (EXCLUDED.email, EXCLUDED.name, EXCLUDED.password, EXCLUDED.profile_photo, EXCLUDED.bio, EXCLUDED.email_confirmed, EXCLUDED.deleted_at, EXCLUDED.failed_attempts)
         "#,
         user.id,
         user.email,
@@ -81,6 +107,7 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
         user.password,
         user.profile_photo,
         user.bio,
+        user.email_confirmed,
         user.created_at,
         user.updated_at,
         user.deleted_at,
@@ -107,7 +134,7 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
 pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
     sqlx::query!(
         r#"
-        SELECT id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts
+        SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
         FROM users
         WHERE id = $1
         "#, id
@@ -125,6 +152,7 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
             u.profile_photo,
             u.bio,
             u.failed_attempts,
+            u.email_confirmed,
             u.created_at,
             u.updated_at,
             u.deleted_at,
@@ -146,7 +174,7 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
 pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, Error> {
     sqlx::query!(
         r#"
-        SELECT id, email, handle, name, password, profile_photo, bio, created_at, updated_at, deleted_at, failed_attempts
+        SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
         FROM users
         WHERE email = $1
         "#, email
@@ -164,6 +192,7 @@ pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, 
                 u.profile_photo,
                 u.bio,
                 u.failed_attempts,
+                u.email_confirmed,
                 u.created_at,
                 u.updated_at,
                 u.deleted_at,

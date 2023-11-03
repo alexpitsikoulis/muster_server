@@ -23,7 +23,7 @@ pub struct SignupFormData {
     )
 )]
 pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    let new_user = match NewUser::parse(form) {
+    let new_user = match NewUser::try_from(form) {
         Ok(u) => u,
         Err(e) => {
             tracing::error!("Failed to validate new user: {:?}", e);
@@ -31,7 +31,7 @@ pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>)
         },
     };
 
-    let user: User = new_user.into();
+    let user = User::from(new_user);
 
     match upsert_user(db_pool.get_ref(), &user).await {
         Ok(()) => {
@@ -59,18 +59,29 @@ pub async fn login(form: web::Form<LoginFormData>, db_pool: web::Data<PgPool>) -
     match get_user_by_email(db_pool.get_ref(), form.email.clone()).await
     {
         Ok(mut user) => {
+            let mut changed = false;
+            if !user.email_confirmed {
+                return HttpResponse::Unauthorized().body("Account email has not been confirmed");
+            }
             if user.failed_attempts >= 10 {
                 return HttpResponse::Forbidden().body("Account is locked due to too many failed login attempts")
             };
             let login_successful = UserPassword::compare(form.password.clone(), user.password.to_string());
             if login_successful {
-                user.failed_attempts = 0;
+                if user.failed_attempts > 0 {
+                    changed = true;
+                    user.failed_attempts = 0;
+                }
             } else {
+                changed = true;
                 user.failed_attempts += 1;
             }
-            if let Err(e) = upsert_user(db_pool.get_ref(), &user).await {
-                tracing::error!("INSERT into users table failed: {:?}", e);
-                return HttpResponse::InternalServerError().finish();
+
+            if changed {
+                if let Err(e) = upsert_user(db_pool.get_ref(), &user).await {
+                    tracing::error!("INSERT into users table failed: {:?}", e);
+                    return HttpResponse::InternalServerError().finish();
+                }
             }
 
             match generate_token(user.id) {

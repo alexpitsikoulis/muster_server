@@ -6,7 +6,7 @@ async fn test_create_server_success() {
     let app = spawn_app().await;
     let client = reqwest::Client::new();
 
-    let _user = insert_user(&app.db_pool, None).await;
+    let _user = insert_user(&app.db_pool, true).await;
 
     let mut body = "email=testuser%40youwish.com&password=Testpassw0rd!";
     let mut response = client
