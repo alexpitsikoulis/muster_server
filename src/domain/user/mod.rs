@@ -2,8 +2,8 @@ mod email;
 mod handle;
 mod password;
 
-pub use handle::HandleValidationErr;
-pub use password::{PasswordValidationErr, UserPassword};
+pub use handle::{HandleValidationErr, ALLOWED_HANDLE_CHARS};
+pub use password::{PasswordValidationErr, UserPassword, ALLOWED_PASSWORD_CHARS};
 
 use email::*;
 use handle::*;

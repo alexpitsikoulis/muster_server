@@ -2,6 +2,8 @@ use rand::RngCore;
 use argon2::{self, Config};
 use secrecy::{Secret, ExposeSecret};
 
+pub const ALLOWED_PASSWORD_CHARS: &[char] = &[' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~'];
+
 #[derive(Debug)]
 pub enum PasswordValidationErr {
     PwdTooShort,
@@ -52,23 +54,23 @@ impl UserPassword {
         let mut has_number = false;
         let mut has_char = false;
     
-        for b in password.expose_secret().as_bytes() {
+        for c in password.expose_secret().chars().into_iter() {
             if has_lower && has_upper && has_number && has_char {
                 break;
             }
-            if !has_lower && *b >= 97 && *b <= 122 {
+            if !has_lower && c >= 'a' && c <= 'z' {
                 has_lower = true;
                 continue;
             }
-            if !has_upper && *b >= 65 && *b <= 90 {
+            if !has_upper && c >= 'A' && c <= 'Z' {
                 has_upper = true;
                 continue;
             }
-            if !has_number && *b >= 48 && *b <= 57 {
+            if !has_number && c >= '0' && c <= '9' {
                 has_number = true;
                 continue;
             }
-            if !has_char && " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~".as_bytes().contains(b) {
+            if !has_char && ALLOWED_PASSWORD_CHARS.contains(&c) {
                 has_char = true;
                 continue;
             }
@@ -105,7 +107,7 @@ impl AsRef<str> for UserPassword {
 mod tests {
     use crate::{
         domain::user::UserPassword,
-        utils::test::get_random_length,
+        utils::test::PASSWORD_GENERATOR,
     };
     use claim::assert_err;
     use secrecy::Secret;
@@ -115,15 +117,7 @@ mod tests {
 
     impl quickcheck::Arbitrary for ValidPasswordFixture {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-            let gen = passwords::PasswordGenerator::new()
-                .length(get_random_length(8, 64, g) as usize)
-                .lowercase_letters(true)
-                .uppercase_letters(true)
-                .numbers(true)
-                .symbols(true)
-                .strict(true);
-
-            let password = gen.generate_one().unwrap();
+            let password = PASSWORD_GENERATOR.generate(g);
             ValidPasswordFixture(Secret::new(password))
         }
     }
