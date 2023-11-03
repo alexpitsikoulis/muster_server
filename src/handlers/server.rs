@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use crate::{
     storage::{upsert_server, Server},
-    utils::get_claims_from_token,
+    utils::jwt::get_claims_from_token,
 };
 
 #[derive(serde::Deserialize)]

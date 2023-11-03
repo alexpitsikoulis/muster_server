@@ -103,9 +103,30 @@ impl AsRef<str> for UserPassword {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::user::UserPassword;
-    use claim::{assert_err, assert_ok};
+    use crate::{
+        domain::user::UserPassword,
+        utils::test::get_random_length,
+    };
+    use claim::assert_err;
     use secrecy::Secret;
+
+    #[derive(Clone, Debug)]
+    struct ValidPasswordFixture(pub Secret<String>);
+
+    impl quickcheck::Arbitrary for ValidPasswordFixture {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let gen = passwords::PasswordGenerator::new()
+                .length(get_random_length(8, 64, g) as usize)
+                .lowercase_letters(true)
+                .uppercase_letters(true)
+                .numbers(true)
+                .symbols(true)
+                .strict(true);
+
+            let password = gen.generate_one().unwrap();
+            ValidPasswordFixture(Secret::new(password))
+        }
+    }
 
     #[test]
     fn fails_when_less_than_8_grapheme() {
@@ -144,43 +165,8 @@ mod tests {
         assert_err!(UserPassword::parse(password));
     }
 
-    #[test]
-    fn valid_password_parses_successfully() {
-        let passwords = &[
-            "N0neofyourbus!ness",
-            "N0neofyourbusiness\"",
-            "N0neofyourbusiness#",
-            "N0neofyourbusiness$",
-            "N0neofyourbusiness%",
-            "N0neofyourbusiness&",
-            "N0neofyourbusiness'",
-            "N0neofyourbusiness(",
-            "N0neofyourbusiness)",
-            "N0neofyourbusiness*",
-            "N0neofyourbusiness+",
-            "N0neofyourbusiness-",
-            "N0neofyourbusiness.",
-            "N0neofyourbusiness/",
-            "N0neofyourbusiness:",
-            "N0neofyourbusiness;",
-            "N0neofyourbusiness<",
-            "N0neofyourbusiness=",
-            "N0neofyourbusiness>",
-            "N0neofyourbusiness?",
-            "N0neofyourbusiness@",
-            "N0neofyourbusiness[",
-            "N0neofyourbusiness]",
-            "N0neofyourbusiness\\",
-            "N0neofyourbusiness^",
-            "N0neofyourbusiness_",
-            "N0neofyourbusiness`",
-            "N0neofyourbusiness{",
-            "N0neofyourbusiness|",
-            "N0neofyourbusiness}",
-            "N0neofyourbusiness~",
-        ];
-        for password in passwords {
-            assert_ok!(UserPassword::parse(Secret::new(password.to_string())));
-        }
+    #[quickcheck_macros::quickcheck]
+    fn valid_password_parses_successfully(password: ValidPasswordFixture) -> bool {
+        UserPassword::parse(password.0).is_ok()
     }
 }

@@ -4,7 +4,7 @@ use secrecy::Secret;
 use crate::{
     domain::user::{NewUser, UserPassword},
     storage::{upsert_user, get_user_by_email, User},
-    utils::generate_token,
+    utils::jwt::generate_token,
 };
 
 #[derive(serde::Deserialize, Clone)]
@@ -23,7 +23,7 @@ pub struct SignupFormData {
     )
 )]
 pub async fn signup(form: web::Form<SignupFormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    let new_user = match NewUser::try_parse(form) {
+    let new_user = match NewUser::parse(form) {
         Ok(u) => u,
         Err(e) => {
             tracing::error!("Failed to validate new user: {:?}", e);

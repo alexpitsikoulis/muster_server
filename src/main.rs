@@ -3,7 +3,7 @@ use sqlx::postgres::PgPoolOptions;
 use muttr_server::{
     startup::run,
     config::get_config,
-    utils::{create_subscriber, init_subscriber}
+    utils::telemetry::{create_subscriber, init_subscriber}
 };
 
 #[tokio::main]

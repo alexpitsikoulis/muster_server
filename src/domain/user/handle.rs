@@ -42,8 +42,25 @@ impl AsRef<str> for UserHandle {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::user::*;
+    use crate::{
+        domain::user::*,
+        utils::test::get_random_length,
+    };
     use claim::{assert_err, assert_ok};
+
+    #[derive(Clone,Debug)]
+    struct ValidHandleFixture(pub String);
+
+    impl quickcheck::Arbitrary for ValidHandleFixture {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let mut handle = String::new();
+            let valid_chars = "abcdefghijklmnopqrstuvwxyz1234567890!@#$%^&*-_+=[]|~`:;,.";
+            for _ in  0..get_random_length(1, 20, g) {
+                handle.push(g.choose(valid_chars.as_bytes()).unwrap().clone().into());
+            }
+            ValidHandleFixture(handle)
+        }
+    }
 
     #[test]
     fn a_20_grapheme_long_handle_is_valid() {
@@ -81,16 +98,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn valid_handle_parsed_successfully() {
-        let handles = &[
-            "alexpitsikoulis",
-            "alex.pitsikoulis",
-            "AlexPitsikoulis",
-            "ALEX--PITSIKOULIS",
-        ];
-        for handle in handles {
-            assert_ok!(UserHandle::parse(handle.to_string()));
-        }
+    #[quickcheck_macros::quickcheck]
+    fn valid_handle_parsed_successfully(handle: ValidHandleFixture) -> bool {
+        UserHandle::parse(handle.0).is_ok()
     }
 }

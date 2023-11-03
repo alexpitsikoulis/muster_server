@@ -2,7 +2,7 @@ use chrono::Utc;
 use muttr_server::{
     domain::user::UserPassword,
     config::{Config, DatabaseConfig},
-    utils::{create_subscriber, init_subscriber},
+    utils::telemetry::{create_subscriber, init_subscriber},
     storage::{User, upsert_user},
 };
 use secrecy::Secret;

@@ -59,14 +59,7 @@ pub struct NewUser {
 }
 
 impl NewUser {
-    pub fn parse(form: Form<SignupFormData>) -> Self {
-        match Self::try_parse(form) {
-            Ok(u) => u,
-            Err(e) => panic!("Failed to generate NewUser: {:?}", e),
-        }
-    }
-
-    pub fn try_parse(form: Form<SignupFormData>) -> Result<Self, UserValidationErr>  {
+    pub fn parse(form: Form<SignupFormData>) -> Result<Self, UserValidationErr>  {
         let email = match UserEmail::parse(form.email.clone()) {
             Ok(e) => e,
             Err(e) => return Err(UserValidationErr::EmailValidationErr(e)),

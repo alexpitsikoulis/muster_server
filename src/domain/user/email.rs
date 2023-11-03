@@ -31,7 +31,21 @@ impl AsRef<str> for UserEmail {
 #[cfg(test)]
 mod tests {
     use crate::domain::user::UserEmail;
-    use claim::{assert_err, assert_ok};
+    use fake::{
+        Fake,
+        faker::internet::en::SafeEmail,
+    };
+    use claim::assert_err;
+
+    #[derive(Clone, Debug)]
+    struct ValidEmailFixture(pub String);
+
+    impl quickcheck::Arbitrary for ValidEmailFixture {
+        fn arbitrary(_g: &mut quickcheck::Gen) -> Self {
+            let email = SafeEmail().fake();
+            ValidEmailFixture(email)
+        }
+    }
     #[test]
     fn invalid_email_rejected() {
         let emails = &[
@@ -49,18 +63,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn valid_email_parsed_successfully() {
-        let emails = &[
-            "alex.pitsikoulis@test.com",
-            "alex-pitsikoulis@test.com",
-            "alex_pitsikoulis@test.com",
-            "alex.pitsikoulis@test.co",
-            "alex.pitsikoulis@domain.test.com",
-        ];
-
-        for email in emails {
-            assert_ok!(UserEmail::parse(email.to_string()));
-        }
+    #[quickcheck_macros::quickcheck]
+    fn valid_email_parsed_successfully(email: ValidEmailFixture) -> bool {
+        UserEmail::parse(email.0).is_ok()
     }
 }
