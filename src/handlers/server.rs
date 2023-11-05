@@ -6,7 +6,7 @@ use crate::{
     utils::jwt::get_claims_from_token,
 };
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct CreateServerRequestData {
     pub name: String,
     pub description: Option<String>,
@@ -18,6 +18,8 @@ pub struct CreateServerRequestDataWithOwner {
     pub data: web::Json<CreateServerRequestData>,
     pub owner_id: Uuid,
 }
+
+// pub async fn update_server(req: HttpRequest, db_pool: web::Data<PgPool>, web::Jso)
 
 #[tracing::instrument(
     name = "Creating new server",

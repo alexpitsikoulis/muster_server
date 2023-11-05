@@ -1,16 +1,14 @@
-mod utils;
 use secrecy::Secret;
-use utils::{spawn_app, clear_database};
 use muttr_server::{
     domain::user::UserPassword,
     storage::USERS_TABLE_NAME,
 };
-use crate::utils::insert_user;
+use crate::utils::TestApp;
 
 
 #[tokio::test]
 async fn test_signup_success() {
-    let app = spawn_app().await;
+    let app = TestApp::spawn().await;
     let client = reqwest::Client::new();
 
     let body = "handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness";
@@ -27,7 +25,7 @@ async fn test_signup_success() {
     match sqlx::query!(
         "SELECT handle, email, password FROM users WHERE email = 'alex.pitsikoulis@youwish.com'",
     )
-    .fetch_one(&app.db_pool)
+    .fetch_one(&app.database.db_pool)
     .await {
         Ok(user) => {
             assert_eq!("alex.pitsikoulis", user.handle);
@@ -42,7 +40,7 @@ async fn test_signup_success() {
 
 #[tokio::test]
 async fn test_signup_failed_400() {
-    let app = spawn_app().await;
+    let mut app = TestApp::spawn().await;
     let client = reqwest::Client::new();
     let test_cases = vec![
         ("handle=alex.pitsikoulis0&password=N0neofyourbus!ness", "missing the email"),
@@ -87,15 +85,15 @@ async fn test_signup_failed_400() {
             "The API did not fail with 400 Bad Request when the payload was {}.",
             error_message,
         );
-        clear_database(&app.db_pool, USERS_TABLE_NAME).await;
+        app.database.clear(USERS_TABLE_NAME).await;
     }
 }
 
 #[tokio::test]
 async fn test_login_success() {
-    let app = spawn_app().await;
+    let mut app = TestApp::spawn().await;
     
-    let _user = insert_user(&app.db_pool, true).await ;
+    let _user = app.database.insert_user(true).await ;
     
     let client = reqwest::Client::new();
 
@@ -114,9 +112,9 @@ async fn test_login_success() {
 
 #[tokio::test]
 async fn test_login_failure_on_invalid_credentials() {
-    let app = spawn_app().await;
+    let mut app = TestApp::spawn().await;
 
-    let _user = insert_user(&app.db_pool, true);
+    let _user = app.database.insert_user(true);
 
     let client = reqwest::Client::new();
     
@@ -147,9 +145,9 @@ async fn test_login_failure_on_invalid_credentials() {
 
 #[tokio::test]
 async fn test_login_failure_on_unconfirmed_email() {
-    let app = spawn_app().await;
+    let mut app = TestApp::spawn().await;
 
-    let _user = insert_user(&app.db_pool, false).await;
+    let _user = app.database.insert_user(false).await;
 
     let client = reqwest::Client::new();
 

@@ -36,19 +36,19 @@ impl From<String> for Env {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct Config {
     pub app: AppConfig,
     pub database: DatabaseConfig,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct AppConfig {
     pub port: u16,
     pub host: String,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct DatabaseConfig {
     pub username: String,
     pub password: Secret<String>,

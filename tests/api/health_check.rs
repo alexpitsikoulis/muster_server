@@ -1,11 +1,9 @@
-mod utils;
-
-use utils::spawn_app;
 use claim::assert_some_eq;
+use crate::utils::TestApp;
 
 #[tokio::test]
 async fn test_health_check() {
-    let app = spawn_app().await;
+    let app = TestApp::spawn().await;
     let client = reqwest::Client::new();
     
     let response = client
