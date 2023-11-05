@@ -9,7 +9,7 @@ use muttr_server::{
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let default_filter_level = "info".to_string();
-    let subscriber_name = "test".to_string();
+    let subscriber_name = "muttr_server".to_string();
     let subscriber = create_subscriber(
         subscriber_name, default_filter_level, std::io::stdout
     );
@@ -21,6 +21,6 @@ async fn main() -> std::io::Result<()> {
 
     let address = format!("{}:{}", config.app.host, config.app.port);
     let listener = TcpListener::bind(address)
-        .expect("Failed to bind to port 8000");
+        .expect(&format!("Failed to bind to port {}", config.app.port));
     run(listener, connection_pool)?.await
 }

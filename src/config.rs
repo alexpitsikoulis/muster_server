@@ -27,7 +27,7 @@ impl From<String> for Env {
             other => {
                 tracing::warn!(
                     "{} is not a supported environment. \
-                    Use either `local` or `production`",
+                    Use either `local`, `production`, or `test`",
                     other
                 );
                 Self::Local
