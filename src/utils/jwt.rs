@@ -18,6 +18,8 @@ pub struct Claims {
     pub sub: String,
     pub allowed_servers: HashMap<String, Role>,
 }
+
+#[derive(Debug)]
 pub enum Error {
     EncodeErr(String),
     DecodeErr(String),

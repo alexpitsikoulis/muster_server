@@ -1,9 +1,10 @@
 use chrono::Utc;
 use muttr_server::{
-    domain::user::UserPassword,
+    domain::user::{Password, User},
     config::{Config, DatabaseConfig, get_config},
     utils::telemetry::{create_subscriber, init_subscriber},
-    storage::{User, upsert_user}, startup::App,
+    storage::upsert_user,
+    startup::App,
 };
 use secrecy::Secret;
 use sqlx::{PgPool, PgConnection, Executor, Connection};
@@ -106,7 +107,7 @@ impl TestDB {
             None,
         );
     
-        user.password = match UserPassword::parse(Secret::new(user.password)) {
+        user.password = match Password::parse(Secret::new(user.password)) {
             Ok(hash) => hash.as_ref().to_string(),
             Err(e) => panic!("Password validation failed: {:?}", e),
         };

@@ -1,28 +1,27 @@
 mod email;
 mod handle;
 mod password;
+mod login;
 
-pub use handle::{HandleValidationErr, ALLOWED_HANDLE_CHARS};
-pub use password::{PasswordValidationErr, UserPassword, ALLOWED_PASSWORD_CHARS};
+use actix_web::{web::Form, HttpResponse};
+pub use handle::*;
+pub use password::*;
+pub use email::*;
+pub use login::*;
 
-use email::*;
-use handle::*;
+use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
-use actix_web::{
-    HttpResponse,
-    web:: Form,
-};
 use crate::handlers::SignupFormData;
 
-
 #[derive(Debug)]
-pub enum UserValidationErr {
+pub enum UserValidationError {
     EmailValidationErr(EmailValidationErr),
     HandleValidationErr(HandleValidationErr),
     PasswordValidationErr(PasswordValidationErr),
 }
 
-impl UserValidationErr {
+impl UserValidationError {
     pub fn handle_http(&self) -> HttpResponse {
         let body = match self {
             Self::EmailValidationErr(e) => format!("Email is not valid: {:?}", e),
@@ -49,29 +48,85 @@ impl UserValidationErr {
     }
 }
 
-pub struct NewUser {
-    pub email: UserEmail,
-    pub handle: UserHandle,
-    pub password: UserPassword,
+#[derive(Clone, Debug)]
+pub struct User {
+    pub id: Uuid,
+    pub email: String,
+    pub handle: String,
+    pub name: Option<String>,
+    pub password: String,
+    pub profile_photo: Option<String>,
+    pub bio: Option<String>,
+    pub failed_attempts: i16,
+    pub email_confirmed: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
-impl TryFrom<Form<SignupFormData>> for NewUser {
-    type Error = UserValidationErr;
+impl User {
+    pub fn new(
+        id: Uuid,
+        email: String,
+        handle: String,
+        name: Option<String>,
+        password: String,
+        profile_photo: Option<String>,
+        bio: Option<String>,
+        failed_attempts: i16,
+        email_confirmed: bool,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+        deleted_at: Option<DateTime<Utc>>,
+    ) -> Self {
+        User {
+            id,
+            email,
+            handle,
+            name,
+            password,
+            profile_photo,
+            bio,
+            failed_attempts,
+            email_confirmed,
+            created_at,
+            updated_at,
+            deleted_at,
+        }
+    }
+}
 
+impl TryFrom<Form<SignupFormData>> for User {
+    type Error = UserValidationError;
     fn try_from(form: Form<SignupFormData>) -> Result<Self, Self::Error> {
-        let email = match UserEmail::parse(form.email.clone()) {
+        let email = match Email::parse(form.email.clone()) {
             Ok(e) => e,
-            Err(e) => return Err(UserValidationErr::EmailValidationErr(e)),
+            Err(e) => return Err(UserValidationError::EmailValidationErr(e)),
         };
-        let handle = match UserHandle::parse(form.handle.clone()) {
+        let handle = match Handle::parse(form.handle.clone()) {
             Ok(h) => h,
-            Err(e) => return Err(UserValidationErr::HandleValidationErr(e)),
+            Err(e) => return Err(UserValidationError::HandleValidationErr(e)),
         };
-        let password = match UserPassword::parse(form.password.clone()) {
+        let password = match Password::parse(form.password.clone()) {
             Ok(p) => p,
-            Err(e) => return Err(UserValidationErr::PasswordValidationErr(e)),
+            Err(e) => return Err(UserValidationError::PasswordValidationErr(e)),
         };
 
-        Ok(NewUser{email, handle, password})
+        let now = Utc::now();
+
+        Ok(User::new(
+            Uuid::new_v4(),
+            email.as_ref().to_string(),
+            handle.as_ref().to_string(),
+            None,
+            password.as_ref().to_string(),
+            None,
+            None,
+            0,
+            false,
+            now,
+            now,
+            None,
+        ))
     }
 }

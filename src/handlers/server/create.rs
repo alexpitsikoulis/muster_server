@@ -19,8 +19,6 @@ pub struct CreateServerRequestDataWithOwner {
     pub owner_id: Uuid,
 }
 
-// pub async fn update_server(req: HttpRequest, db_pool: web::Data<PgPool>, web::Jso)
-
 #[tracing::instrument(
     name = "Creating new server",
     skip(body, db_pool),

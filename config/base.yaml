@@ -6,3 +6,8 @@ database:
   username: "postgres"
   password: "password"
   database_name: "muttr"
+mailer:
+  host: localhost
+  port: 2525
+  username: noreply
+  password: password

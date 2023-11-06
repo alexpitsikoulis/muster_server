@@ -16,9 +16,9 @@ pub enum PasswordValidationErr {
 }
 
 #[derive(Debug)]
-pub struct UserPassword(String);
+pub struct Password(String);
 
-impl UserPassword {
+impl Password {
     pub fn parse(password: Secret<String>) -> Result<Self, PasswordValidationErr> {
         match Self::validate(password.clone()) {
             Ok(()) => {
@@ -97,7 +97,7 @@ impl UserPassword {
     }
 }
 
-impl AsRef<str> for UserPassword {
+impl AsRef<str> for Password {
     fn as_ref(&self) -> &str {
         &self.0
     }
@@ -106,7 +106,7 @@ impl AsRef<str> for UserPassword {
 #[cfg(test)]
 mod tests {
     use crate::{
-        domain::user::UserPassword,
+        domain::user::Password,
         utils::test::PASSWORD_GENERATOR,
     };
     use claim::assert_err;
@@ -125,42 +125,42 @@ mod tests {
     #[test]
     fn fails_when_less_than_8_grapheme() {
         let password = Secret::new("P@ssw0r".to_string());
-        assert_err!(UserPassword::parse(password));
+        assert_err!(Password::parse(password));
     }
 
     #[test]
     fn fails_when_more_than_64_grapheme() {
         let filler = "A".repeat(60);
         let password = Secret::new(format!("P@ss1{}", filler).to_string());
-        assert_err!(UserPassword::parse(password));
+        assert_err!(Password::parse(password));
     }
 
     #[test]
     fn fails_when_no_uppercase() {
         let password = Secret::new("n0neofyourbus!ness".to_string());
-        assert_err!(UserPassword::parse(password));
+        assert_err!(Password::parse(password));
     }
 
     #[test]
     fn fails_when_no_lowercase() {
         let password = Secret::new("N0NEOFYOURBUS!NESS".to_string());
-        assert_err!(UserPassword::parse(password));
+        assert_err!(Password::parse(password));
     }
 
     #[test]
     fn fails_when_no_number() {
         let password = Secret::new("Noneofyourbus!ness".to_string());
-        assert_err!(UserPassword::parse(password));
+        assert_err!(Password::parse(password));
     }
 
     #[test]
     fn fails_when_no_special_char() {
         let password = Secret::new("N0neofyourbusiness".to_string());
-        assert_err!(UserPassword::parse(password));
+        assert_err!(Password::parse(password));
     }
 
     #[quickcheck_macros::quickcheck]
     fn valid_password_parses_successfully(password: ValidPasswordFixture) -> bool {
-        UserPassword::parse(password.0).is_ok()
+        Password::parse(password.0).is_ok()
     }
 }

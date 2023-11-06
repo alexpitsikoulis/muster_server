@@ -9,9 +9,9 @@ pub enum HandleValidationErr {
 pub const ALLOWED_HANDLE_CHARS: &[char] =  &['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '#', '$', '%', '&', '*', '+', ',', '-', '.', ':', ';', '=', '?', '@', '[', ']', '^', '_', '`', '|', '~'];
 
 #[derive(Debug)]
-pub struct UserHandle(String);
+pub struct Handle(String);
 
-impl UserHandle {
+impl Handle {
     pub fn parse(handle: String) -> Result<Self, HandleValidationErr> {
         let mut forbidden_character: Option<char> = None;
         if handle.trim().is_empty() {
@@ -31,11 +31,11 @@ impl UserHandle {
                 }) {
             return Err(HandleValidationErr::HandleContainsForbiddenChars(forbidden_character.unwrap()))
         }
-        Ok(UserHandle(handle))
+        Ok(Handle(handle))
     }
 }
 
-impl AsRef<str> for UserHandle {
+impl AsRef<str> for Handle {
     fn as_ref(&self) -> &str {
         &self.0
     }
@@ -62,13 +62,13 @@ mod tests {
     #[test]
     fn a_20_grapheme_long_handle_is_valid() {
         let handle = "A".repeat(20);
-        assert_ok!(UserHandle::parse(handle));
+        assert_ok!(Handle::parse(handle));
     }
 
     #[test]
     fn a_handle_longer_than_20_grapheme_is_rejected() {
         let handle = "A".repeat(21);
-        assert_err!(UserHandle::parse(handle));
+        assert_err!(Handle::parse(handle));
     }
 
     #[test]
@@ -83,7 +83,7 @@ mod tests {
         ];
 
         for handle in handles {
-            assert_err!(UserHandle::parse(handle.to_string()));
+            assert_err!(Handle::parse(handle.to_string()));
         }
     }
 
@@ -91,17 +91,17 @@ mod tests {
     fn handle_with_forbidden_characters_rejected() {
         let handles = &["/", "(", ")", "'", "\"", "<", ">", "\\", "{", "}"];
         for handle in handles {
-            assert_err!(UserHandle::parse(handle.to_string()));
+            assert_err!(Handle::parse(handle.to_string()));
         }
     }
     
     #[test]
     fn empty_string_handle_rejected() {
-        assert_err!(UserHandle::parse("".to_string()));
+        assert_err!(Handle::parse("".to_string()));
     }
 
     #[quickcheck_macros::quickcheck]
     fn valid_handle_parsed_successfully(handle: ValidHandleFixture) -> bool {
-        UserHandle::parse(handle.0).is_ok()
+        Handle::parse(handle.0).is_ok()
     }
 }

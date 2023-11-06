@@ -6,9 +6,9 @@ pub enum EmailValidationErr {
 }
 
 #[derive(Debug)]
-pub struct UserEmail(String);
+pub struct Email(String);
 
-impl UserEmail {
+impl Email {
     pub fn parse(email: String) -> Result<Self, EmailValidationErr> {
         if Self::email_regex().is_match(email.as_str()) {
             Ok(Self(email))
@@ -22,7 +22,7 @@ impl UserEmail {
     }
 }
 
-impl AsRef<str> for UserEmail {
+impl AsRef<str> for Email {
     fn as_ref(&self) -> &str {
         &self.0
     }
@@ -30,7 +30,7 @@ impl AsRef<str> for UserEmail {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::user::UserEmail;
+    use crate::domain::user::email::Email;
     use fake::{
         Fake,
         faker::internet::en::SafeEmail,
@@ -59,12 +59,12 @@ mod tests {
             "alex@_test.com",
         ];
         for email in emails {
-            assert_err!(UserEmail::parse(email.to_string()));
+            assert_err!(Email::parse(email.to_string()));
         }
     }
 
     #[quickcheck_macros::quickcheck]
     fn valid_email_parsed_successfully(email: ValidEmailFixture) -> bool {
-        UserEmail::parse(email.0).is_ok()
+        Email::parse(email.0).is_ok()
     }
 }

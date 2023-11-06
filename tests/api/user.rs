@@ -1,6 +1,6 @@
 use secrecy::Secret;
 use muttr_server::{
-    domain::user::UserPassword,
+    domain::user::Password,
     storage::USERS_TABLE_NAME,
 };
 use crate::utils::TestApp;
@@ -30,7 +30,7 @@ async fn test_signup_success() {
         Ok(user) => {
             assert_eq!("alex.pitsikoulis", user.handle);
             assert_eq!("alex.pitsikoulis@youwish.com", user.email);
-            assert!(UserPassword::compare(Secret::new("N0neofyourbus!ness".into()), user.password));
+            assert!(Password::compare(Secret::new("N0neofyourbus!ness".into()), user.password));
         },
         Err(e) => {
             panic!("DB query failed: {}", e);
@@ -97,7 +97,7 @@ async fn test_login_success() {
     
     let client = reqwest::Client::new();
 
-    let body = "email=testuser%40youwish.com&password=Testpassw0rd!";
+    let body = "login=testuser%40youwish.com&password=Testpassw0rd!";
     let response = client
         .post(&format!("{}/login", app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -118,7 +118,7 @@ async fn test_login_failure_on_invalid_credentials() {
 
     let client = reqwest::Client::new();
     
-    let mut body = "email=testuser%40youwish.com&password=someotherpassword";
+    let mut body = "login=testuser%40youwish.com&password=someotherpassword";
     let mut response = client
         .post(&format!("{}/login", app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -130,7 +130,7 @@ async fn test_login_failure_on_invalid_credentials() {
     assert_eq!(200, response.status());
     assert_eq!("false", response.headers().get("X-Login-Successful").expect("X-Login-Success header not present"));
 
-    body = "email=someotheremail%40test.com&password=Testpassw0rd1";
+    body = "login=someotheremail%40test.com&password=Testpassw0rd1";
     response = client
         .post(&format!("{}/login", app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -151,7 +151,7 @@ async fn test_login_failure_on_unconfirmed_email() {
 
     let client = reqwest::Client::new();
 
-    let body = "email=testuser%40youwish.com&password=Testpassw0rd!";
+    let body = "login=testuser%40youwish.com&password=Testpassw0rd!";
     let response = client
         .post(&format!("{}/login", app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
