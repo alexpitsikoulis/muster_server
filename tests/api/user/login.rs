@@ -1,89 +1,108 @@
-use secrecy::Secret;
-use muttr_server::{
-    domain::user::Password,
-    storage::USERS_TABLE_NAME,
+use claim::assert_ok;
+use crate::utils::{
+    TEST_USER_HANDLE,
+    app::TestApp, 
+    jwt::token_in_response_matches_user,
+    http_client::{Path, Header, ContentType}, TEST_USER_PASSWORD,
 };
-use crate::utils::app::TestApp;
 
 #[tokio::test]
-async fn test_signup_success() {
-    let app = TestApp::spawn().await;
+async fn test_login_success() {
+    let mut app = TestApp::spawn().await;
+
+    let user = app.database.insert_user(true).await;
+
+    let test_cases = vec![
+        (format!("login=testuser%40youwish.com&password={}", TEST_USER_PASSWORD), "the email and password provided are valid"),
+        (format!("login={}&password={}", TEST_USER_HANDLE, TEST_USER_PASSWORD), "the handle and password provided are valid"),
+    ];
+
+    for (body, error_message) in test_cases {
+        let response = app.client.request(
+            Path::POST("/login"),
+            &[Header::ContentType(ContentType::FormURLEncoded)],
+            Some(body)
+        ).await;
+
+        assert_eq!(
+            200,
+            response.status(),
+            "The API did not return 200 when {}",
+            error_message,
+        );
+
+        let token_matches = token_in_response_matches_user(user.id, response);
+        assert_ok!(
+            &token_matches,
+            "The API did not return auth token corresponding to the user when {}: {}",
+            error_message,
+            match &token_matches {
+                Ok(_) => String::new(),
+                Err(e) => e.clone(),
+            }
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_login_failure_on_invalid_credentials() {
+    let mut app = TestApp::spawn().await;
+
+    let _user = app.database.insert_user(true);
+
+    let test_cases = vec![
+        ("login=testuser%40youwish.com&password=S0meotherpassword!".to_string(), "the email is found but the password is incorrect"),
+        (format!("login={}&password=S0meotherpassword!", TEST_USER_HANDLE), "the handle is found but the password is incorrect"),
+        ("login=someotheremail%40test.com&password=Testpassw0rd1".to_string(), "the email is not found"),
+        ("login=someotheruser&password=Testpassw0rd1".to_string(), "the handle is not found"),
+    ];
+
+    for (invalid_body, error_message) in test_cases {
+        let response = app.client.request(
+            Path::POST("/login"),
+            &[Header::ContentType(ContentType::FormURLEncoded)],
+            Some(invalid_body),
+        ).await;
+
+        assert_eq!(
+            200,
+            response.status(),
+            "The API did not return 200 when {}",
+            error_message,
+        );
+        assert!(
+            response.headers().get("Authorization").is_none(),
+            "The API wrongfully returned auth token when {}",
+            error_message,
+        )
+    }
+}
+
+#[tokio::test]
+async fn test_login_failure_on_unconfirmed_email() {
+    let mut app = TestApp::spawn().await;
+
+    let _user = app.database.insert_user(false).await;
+
     let client = reqwest::Client::new();
 
-    let body = "handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness";
+    let body = "login=testuser%40youwish.com&password=Testpassw0rd!";
     let response = client
-        .post(&format!("{}/signup", app.address))
+        .post(&format!("{}/login", app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
         .send()
         .await
         .expect("Failed to execute request");
 
-    assert_eq!(200, response.status().as_u16());
-
-    match sqlx::query!(
-        "SELECT handle, email, password FROM users WHERE email = 'alex.pitsikoulis@youwish.com'",
-    )
-    .fetch_one(&app.database.db_pool)
-    .await {
-        Ok(user) => {
-            assert_eq!("alex.pitsikoulis", user.handle);
-            assert_eq!("alex.pitsikoulis@youwish.com", user.email);
-            assert!(Password::compare(Secret::new("N0neofyourbus!ness".into()), user.password));
-        },
-        Err(e) => {
-            panic!("DB query failed: {}", e);
-        }
-    };
-}
-
-#[tokio::test]
-async fn test_signup_failed_400() {
-    let mut app = TestApp::spawn().await;
-    let client = reqwest::Client::new();
-    let test_cases = vec![
-        ("handle=alex.pitsikoulis0&password=N0neofyourbus!ness", "missing the email"),
-        ("email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "the name"),
-        ("email=alex.pitsikoulis%40youwish.com&handle=alex.pitsikoulis", "missing the password"),
-        ("handle=alex.pitsikoulis", "missing the email and password"),
-        ("email=alex.pitsikoulis%40youwish.com", "missing the name and password"),
-        ("password=N0neofyourbus!ness", "missing the name and email"),
-        ("", "missing the name, email, and password"),
-        ("handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=c0!", "password too short"),
-        ("handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!c0!", "password too long"),
-        ("handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=passw0rd!", "password missing uppercase letter"),
-        ("handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=Password!", "password missing number"),
-        ("handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=Passw0rd", "password missing special character"),
-        ("handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=PASSW0RD!", "password missing lowercase letter"),
-        ("handle=&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle is empty"),
-        ("handle=   &email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle is whitespace"),
-        ("handle=alex.pitsikoulis.alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle is too long"),
-        ("handle=alex.pitsikoulis/&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character '/'"),
-        ("handle=alex.pitsikoulis(&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character '('"),
-        ("handle=alex.pitsikoulis)&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character ')'"),
-        ("handle=alex.pitsikoulis\"&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character '\"'"),
-        ("handle=alex.pitsikoulis<&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character '<'"),
-        ("handle=alex.pitsikoulis>&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character '>'"),
-        ("handle=alex.pitsikoulis\\&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character '\\'"),
-        ("handle=alex.pitsikoulis{&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character '{'"),
-        ("handle=alex.pitsikoulis}&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness", "handle contains forbidden character '}'"),
-    ];
-
-    for (invalid_body, error_message) in test_cases {
-        let response = client
-            .post(&format!("{}/signup", app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(invalid_body)
-            .send()
-            .await
-            .expect("Failed to execute request");
-
-        assert_eq!(
-            400,
-            response.status().as_u16(),
-            "The API did not fail with 400 Bad Request when the payload was {}.",
-            error_message,
-        );
-        app.database.clear(USERS_TABLE_NAME).await;
-    }
+    assert_eq!(
+        401,
+        response.status(),
+        "The API did not return 401 when logging in user with unconfirmed email",
+    );
+    assert!(
+        response.headers().get("Authorization").is_none(),
+        "The API wrongfully returned an auth token for user with unconfirmed email",
+    );
+    assert_eq!("Account email has not been confirmed", response.text().await.expect("Failed to parse response body"));
 }

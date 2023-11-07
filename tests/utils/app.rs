@@ -5,7 +5,11 @@ use muttr_server::{
 };
 use uuid::Uuid;
 use once_cell::sync::Lazy;
-use super::db::TestDB;
+use wiremock::MockServer;
+use super::{
+    db::TestDB,
+    http_client::Client,
+};
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let name = "test".to_string();
@@ -23,13 +27,15 @@ pub struct TestApp {
     pub config: Config,
     pub address: String,
     pub database: TestDB,
-    pub client: reqwest::Client,
+    pub client: Client,
+    pub email_server: MockServer,
 }
 
 impl TestApp {
     pub async fn spawn() -> Self {
         std::env::set_var("APP_ENVIRONMENT", "test");
         Lazy::force(&TRACING);
+        let email_server = MockServer::start().await;
         
         let config = {
             let mut c = get_config().expect("Failed to load test config file");
@@ -47,9 +53,10 @@ impl TestApp {
         let test_db = TestDB::new(&config.database).await;
         TestApp {
             config: config.clone(),
-            address: address,
+            address: address.clone(),
             database: test_db,
-            client: reqwest::Client::new(),
+            client: Client::new(address.clone()),
+            email_server: email_server,
         }
     }
 }

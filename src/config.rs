@@ -40,6 +40,7 @@ impl From<String> for Env {
 pub struct Config {
     pub app: AppConfig,
     pub database: DatabaseConfig,
+    pub mailer: MailerConfig,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -56,6 +57,14 @@ pub struct DatabaseConfig {
     pub port: u16,
     pub database_name: String,
     pub require_ssl: bool,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct MailerConfig {
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub password: Secret<String>
 }
 
 

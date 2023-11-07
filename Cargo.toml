@@ -40,6 +40,7 @@ claim = "0.5.0"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 lettre = { version = "0.10.0-beta.2", default-features = false, features = ["smtp-transport", "tokio1-rustls-tls", "hostname", "r2d2", "builder"] }
+wiremock = "0.5.21"
 
 [dependencies.sqlx]
 version = "0.6"
