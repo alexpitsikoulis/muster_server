@@ -1,5 +1,5 @@
 use claim::assert_some_eq;
-use crate::utils::TestApp;
+use crate::utils::app::TestApp;
 
 #[tokio::test]
 async fn test_health_check() {

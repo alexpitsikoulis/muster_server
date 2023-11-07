@@ -66,7 +66,6 @@ pub async fn login(form: Form<LoginForm>, db_pool: Data<PgPool>) -> HttpResponse
             match generate_token(user.id) {
                 Ok(token) => {
                     HttpResponse::Ok()
-                        .append_header(("X-Login-Successful", login_successful.to_string()))
                         .append_header(("Authorization", token))
                         .finish()
                 },
@@ -79,7 +78,7 @@ pub async fn login(form: Form<LoginForm>, db_pool: Data<PgPool>) -> HttpResponse
         },
         Err(e) => {
             match e {
-                sqlx::Error::RowNotFound => HttpResponse::Ok().append_header(("X-Login-Successful", "false")).finish(),
+                sqlx::Error::RowNotFound => HttpResponse::Ok().finish(),
                 _ => {
                     tracing::error!("Failed to execute GET from users table query: {:?}", e);
                     HttpResponse::InternalServerError().finish()

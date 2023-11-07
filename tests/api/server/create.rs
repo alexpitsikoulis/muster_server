@@ -1,13 +1,15 @@
-use crate::utils::TestApp;
+use claim::assert_ok;
+
+use crate::utils::{app::TestApp, jwt::token_in_response_matches_user};
 
 #[tokio::test]
 async fn test_create_server_success() {
     let mut app = TestApp::spawn().await;
     let client = reqwest::Client::new();
 
-    let _user = app.database.insert_user(true).await;
+    let user = app.database.insert_user(true).await;
 
-    let mut body = "email=testuser%40youwish.com&password=Testpassw0rd!";
+    let mut body = "login=testuser%40youwish.com&password=Testpassw0rd!";
     let mut response = client
         .post(&format!("{}/login", app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -16,11 +18,7 @@ async fn test_create_server_success() {
         .await
         .expect("Failed to execute request");
 
-    let token = response.headers()
-        .get("Authorization")
-        .expect("Failed to get Authorization header from response")
-        .to_str()
-        .expect("Failed to cast token to string");
+    let token = assert_ok!(token_in_response_matches_user(user.id, response));
 
 
     body = r#"

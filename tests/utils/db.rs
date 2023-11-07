@@ -1,71 +1,20 @@
 use chrono::Utc;
-use muttr_server::{
-    domain::user::{Password, User},
-    config::{Config, DatabaseConfig, get_config},
-    utils::telemetry::{create_subscriber, init_subscriber},
-    storage::upsert_user,
-    startup::App,
-};
 use secrecy::Secret;
-use sqlx::{PgPool, PgConnection, Executor, Connection};
+use sqlx::{PgPool, PgConnection, Connection, Executor};
 use uuid::Uuid;
-use once_cell::sync::Lazy;
-
-const TEST_USER_EMAIL: &str = "testuser@youwish.com";
-const TEST_USER_HANDLE: &str = "test.user";
-const TEST_USER_PASSWORD: &str = "Testpassw0rd!"; 
-
-static TRACING: Lazy<()> = Lazy::new(|| {
-    let name = "test".to_string();
-    let env_filter = "info".to_string();
-    if std::env::var("TEST_LOG").is_ok() {
-        let subscriber = create_subscriber(name, env_filter, std::io::stdout);
-        init_subscriber(subscriber);
-    } else {
-        let subscriber = create_subscriber(name, env_filter, std::io::sink);
-        init_subscriber(subscriber);
-    }
-});
-
-pub struct TestApp {
-    pub config: Config,
-    pub address: String,
-    pub database: TestDB,
-    pub client: reqwest::Client,
-}
+use muttr_server::{
+    config::DatabaseConfig,
+    startup::App,
+    storage::upsert_user,
+    domain::user::{User, Password},
+};
+use super::{TEST_USER_EMAIL, TEST_USER_HANDLE, TEST_USER_PASSWORD};
 
 pub struct TestDB {
     pub config: DatabaseConfig,
     pub db_pool: PgPool,
 }
 
-impl TestApp {
-    pub async fn spawn() -> Self {
-        std::env::set_var("APP_ENVIRONMENT", "test");
-        Lazy::force(&TRACING);
-        
-        let config = {
-            let mut c = get_config().expect("Failed to load test config file");
-            c.database.database_name = Uuid::new_v4().to_string();
-            c.app.port = 0;
-            c
-        };
-        
-        let app = App::build(config.clone())
-            .await
-            .expect("Failed to build app");
-        let address = format!("http://127.0.0.1:{}", app.port());
-        let _ = tokio::spawn(app.run_until_stopped());
-    
-        let test_db = TestDB::new(&config.database).await;
-        TestApp {
-            config: config.clone(),
-            address: address,
-            database: test_db,
-            client: reqwest::Client::new(),
-        }
-    }
-}
 
 impl TestDB {
     pub async fn new(config: &DatabaseConfig) -> Self {

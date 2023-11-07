@@ -33,10 +33,10 @@ impl TryFrom<Form<LoginForm>> for LoginData {
     fn try_from(form: Form<LoginForm>) -> Result<Self, Self::Error> {
         match Email::parse(form.login.clone()) {
             Ok(e) => Ok(LoginData{ login: Login::Email(e.as_ref().to_string()), password: form.password.clone() }),
-            Err(e) => {
+            Err(_) => {
                 match Handle::parse(form.login.clone()) {
                     Ok(h) => Ok(LoginData{ login: Login::Handle(h.as_ref().to_string()), password: form.password.clone() }),
-                    Err(e) => Err("Email/Handle invalid".to_string()),
+                    Err(_) => Err("Email/Handle invalid".to_string()),
                 }
             }
         }

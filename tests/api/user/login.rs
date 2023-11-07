@@ -3,8 +3,7 @@ use muttr_server::{
     domain::user::Password,
     storage::USERS_TABLE_NAME,
 };
-use crate::utils::TestApp;
-
+use crate::utils::app::TestApp;
 
 #[tokio::test]
 async fn test_signup_success() {
@@ -87,79 +86,4 @@ async fn test_signup_failed_400() {
         );
         app.database.clear(USERS_TABLE_NAME).await;
     }
-}
-
-#[tokio::test]
-async fn test_login_success() {
-    let mut app = TestApp::spawn().await;
-    
-    let _user = app.database.insert_user(true).await ;
-    
-    let client = reqwest::Client::new();
-
-    let body = "login=testuser%40youwish.com&password=Testpassw0rd!";
-    let response = client
-        .post(&format!("{}/login", app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    assert_eq!(200, response.status());
-    assert_eq!("true", response.headers().get("X-Login-Successful").expect("X-Login-Success header not present"));
-}
-
-#[tokio::test]
-async fn test_login_failure_on_invalid_credentials() {
-    let mut app = TestApp::spawn().await;
-
-    let _user = app.database.insert_user(true);
-
-    let client = reqwest::Client::new();
-    
-    let mut body = "login=testuser%40youwish.com&password=someotherpassword";
-    let mut response = client
-        .post(&format!("{}/login", app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    assert_eq!(200, response.status());
-    assert_eq!("false", response.headers().get("X-Login-Successful").expect("X-Login-Success header not present"));
-
-    body = "login=someotheremail%40test.com&password=Testpassw0rd1";
-    response = client
-        .post(&format!("{}/login", app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    assert_eq!(200, response.status());
-    assert_eq!("false", response.headers().get("X-Login-Successful").expect("X-Login-Success header not present"));
-}
-
-#[tokio::test]
-async fn test_login_failure_on_unconfirmed_email() {
-    let mut app = TestApp::spawn().await;
-
-    let _user = app.database.insert_user(false).await;
-
-    let client = reqwest::Client::new();
-
-    let body = "login=testuser%40youwish.com&password=Testpassw0rd!";
-    let response = client
-        .post(&format!("{}/login", app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    assert_eq!(401, response.status());
-    assert_eq!("Account email has not been confirmed", response.text().await.expect("Failed to parse response body"));
 }

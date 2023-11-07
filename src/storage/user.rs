@@ -1,4 +1,3 @@
-use chrono::{Utc, DateTime};
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
