@@ -3,13 +3,19 @@ use actix_web::{
     web::{Query, Data}
 };
 use chrono::Utc;
-use secrecy::ExposeSecret;
+use secrecy::{Secret, ExposeSecret};
 use sqlx::PgPool;
 use crate::{
-    domain::confirmation_token::GetConfirmationTokenData,
-    storage::{ConfirmationToken, get_confirmation_token, confirm_user_email},
+    domain::confirmation_token::ConfirmationToken,
+    storage::{get_confirmation_token, confirm_user_email},
     utils::jwt::get_claims_from_token
 };
+
+#[derive(serde::Deserialize, Clone)]
+pub struct GetConfirmationTokenData {
+    pub confirmation_token: Secret<String>,
+    pub user_id: String,
+}
 
 #[tracing::instrument(
     name = "Confirming user email",

@@ -56,10 +56,10 @@ impl TestDB {
             None,
         );
     
-        user.password = match Password::parse(Secret::new(user.password)) {
-            Ok(hash) => hash.as_ref().to_string(),
+        user.set_password(match Password::parse(Secret::new(user.password())) {
+            Ok(password) => password,
             Err(e) => panic!("Password validation failed: {:?}", e),
-        };
+        });
         
         match upsert_user(&self.db_pool, &user).await {
             Ok(_) => user,

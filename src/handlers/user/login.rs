@@ -39,21 +39,21 @@ pub async fn login(form: Form<LoginForm>, db_pool: Data<PgPool>) -> HttpResponse
     match query_result {
         Ok(mut user) => {
             let mut changed = false;
-            if !user.email_confirmed {
+            if !user.email_confirmed() {
                 return HttpResponse::Unauthorized().body("Account email has not been confirmed");
             }
-            if user.failed_attempts >= 10 {
+            if user.failed_attempts() >= 10 {
                 return HttpResponse::Forbidden().body("Account is locked due to too many failed login attempts")
             };
-            let login_successful = Password::compare(login_data.password.clone(), user.password.to_string());
+            let login_successful = Password::compare(login_data.password.clone(), user.password().to_string());
             if login_successful {
-                if user.failed_attempts > 0 {
+                if user.failed_attempts() > 0 {
                     changed = true;
-                    user.failed_attempts = 0;
+                    user.reset_failed_attempts();
                 }
             } else {
                 changed = true;
-                user.failed_attempts += 1;
+                user.increment_failed_attempts();
             }
 
             if changed {
@@ -63,7 +63,7 @@ pub async fn login(form: Form<LoginForm>, db_pool: Data<PgPool>) -> HttpResponse
                 }
             }
 
-            match generate_token(user.id) {
+            match generate_token(user.id()) {
                 Ok(token) => {
                     HttpResponse::Ok()
                         .append_header(("Authorization", token))

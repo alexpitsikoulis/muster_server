@@ -7,7 +7,5 @@ database:
   password: "password"
   database_name: "muttr"
 mailer:
-  host: localhost
-  port: 2525
-  username: noreply
-  password: password
+  base_url: "localhost:2525"
+  sender_email: "noreply@muttr.com"

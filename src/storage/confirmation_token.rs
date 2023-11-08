@@ -1,31 +1,13 @@
 use secrecy::{Secret, ExposeSecret};
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
-
-pub struct ConfirmationToken {
-    confirmation_token: Secret<String>,
-    user_id: Uuid,
-}
-
-impl ConfirmationToken {
-    pub fn new(confirmation_token: Secret<String>, user_id: Uuid) -> Self {
-        ConfirmationToken { confirmation_token, user_id }
-    }
-
-    pub fn confirmation_token(&self) -> Secret<String> {
-        self.confirmation_token.clone()
-    }
-
-    pub fn user_id(&self) -> Uuid {
-        self.user_id
-    }
-}
+use crate::domain::confirmation_token::ConfirmationToken;
 
 #[tracing::instrument(
     name = "Inserting confirmation_token to database",
     skip(confirmation_token, db_pool),
     fields(
-        user_id = %confirmation_token.user_id,
+        user_id = %confirmation_token.user_id(),
     )
 )]
 pub async fn insert_confirmation_token(
@@ -37,16 +19,16 @@ pub async fn insert_confirmation_token(
         INSERT INTO confirmation_tokens (confirmation_token, user_id)
         VALUES ($1, $2);
         "#,
-        confirmation_token.confirmation_token.expose_secret(),
-        confirmation_token.user_id,
+        confirmation_token.expose(),
+        confirmation_token.user_id(),
     )
         .execute(db_pool)
         .await
         .map(|_| {
-            tracing::info!("INSERT confirmation_token for user {} successful", confirmation_token.user_id);
+            tracing::info!("INSERT confirmation_token for user {} successful", confirmation_token.user_id());
         })
         .map_err(|e| {
-            tracing::info!("INSERT confirmation_token for user {} failed: {:?}", confirmation_token.user_id, e);
+            tracing::info!("INSERT confirmation_token for user {} failed: {:?}", confirmation_token.user_id(), e);
             e
         })
 }

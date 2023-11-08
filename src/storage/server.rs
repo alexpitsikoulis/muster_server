@@ -1,72 +1,15 @@
 use sqlx::{PgPool, Error};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use crate::handlers::CreateServerRequestDataWithOwner;
+use crate::domain::server::Server;
 
 pub const SERVERS_TABLE_NAME: &str = "servers";
-
-#[derive(Debug)]
-pub struct Server {
-    id: Uuid,
-    name: String,
-    owner_id: Uuid,
-    description: Option<String>,
-    photo: Option<String>,
-    cover_photo: Option<String>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-    deleted_at: Option<DateTime<Utc>>,
-}
-
-impl Server {
-    pub fn new(
-        id: Uuid,
-        name: String,
-        owner_id: Uuid,
-        description: Option<String>,
-        photo: Option<String>,
-        cover_photo: Option<String>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        deleted_at: Option<DateTime<Utc>>,
-    ) -> Self {
-        Server {
-            id,
-            name,
-            owner_id,
-            description,
-            photo,
-            cover_photo,
-            created_at,
-            updated_at,
-            deleted_at,
-        }
-    }
-}
-
-impl Into<Server> for CreateServerRequestDataWithOwner {
-    fn into(self) -> Server {
-        let now = Utc::now();
-        Server::new(
-            Uuid::new_v4(),
-            self.data.name.clone(),
-            self.owner_id,
-            self.data.description.clone(),
-            self.data.photo.clone(),
-            self.data.cover_photo.clone(),
-            now,
-            now,
-            None,
-        )
-    }
-}
 
 #[tracing::instrument(
     name = "Upserting server details to database",
     skip(server, db_pool),
     fields(
-        server_name = %server.name,
-        owner_id = %server.owner_id,
+        server_name = %server.name(),
+        owner_id = %server.owner_id(),
     )
 )]
 pub async fn upsert_server(db_pool: &PgPool, server: &Server) -> Result<(), Error> {
@@ -88,15 +31,15 @@ pub async fn upsert_server(db_pool: &PgPool, server: &Server) -> Result<(), Erro
             (EXCLUDED.name, EXCLUDED.description, EXCLUDED.photo, EXCLUDED.cover_photo, EXCLUDED.deleted_at)
 
         "#,
-        server.id,
-        server.name,
-        server.owner_id,
-        server.description,
-        server.photo,
-        server.cover_photo,
-        server.created_at,
-        server.updated_at,
-        server.deleted_at,
+        server.id(),
+        server.name(),
+        server.owner_id(),
+        server.description(),
+        server.photo(),
+        server.cover_photo(),
+        server.created_at(),
+        server.updated_at(),
+        server.deleted_at(),
     )
     .execute(db_pool)
     .await

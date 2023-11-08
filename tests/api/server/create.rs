@@ -11,7 +11,7 @@ async fn test_create_server_success() {
 
     let user = app.database.insert_user(true).await;
 
-    let token = generate_token(user.id).expect("Failed to generate auth token for inserted user");
+    let token = generate_token(user.id()).expect("Failed to generate auth token for inserted user");
 
     let test_cases = vec![
         ("TestServer", Some("Just a test server"), Some("photo base64"), Some("cover_photo base64"), "has all fields"),

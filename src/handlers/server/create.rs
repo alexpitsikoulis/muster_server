@@ -2,7 +2,8 @@ use actix_web::{HttpResponse, web, HttpRequest};
 use sqlx::PgPool;
 use uuid::Uuid;
 use crate::{
-    storage::{upsert_server, Server},
+    domain::server::Server,
+    storage::upsert_server,
     utils::jwt::get_claims_from_token,
 };
 

@@ -1,42 +1,28 @@
-mod confirmation_email;
+use reqwest::Client;
+use super::user::Email;
 
-use lettre::{
-    transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message,
-    Tokio1Executor,
-};
-
-#[derive(Debug)]
-pub enum Error {
-    AddressError(lettre::address::AddressError),
-    EmailError(lettre::transport::smtp::Error),
-    Error(lettre::error::Error),
+pub struct Mailer {
+    http_client: Client,
+    base_url: String,
+    sender: Email,
 }
 
-#[derive(Clone)]
-pub struct Mailer(AsyncSmtpTransport<Tokio1Executor>);
-
 impl Mailer {
-    pub fn new(address: String, credentials: Credentials) -> Result<Self, Error> {
-        match AsyncSmtpTransport::<Tokio1Executor>::relay(&address) {
-            Ok(builder) => Ok(Mailer(builder.credentials(credentials).build())),
-            Err(e) => Err(Error::EmailError(e)),
+    pub fn new(base_url: String, sender: Email) -> Self {
+        Mailer {
+            http_client: reqwest::Client::new(),
+            base_url,
+            sender,
         }
     }
 
-    pub async fn send(
+    pub async fn send_email(
         &self,
-        sender: &str,
         recipient: &str,
         subject: &str,
-        body: String,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let email = Message::builder()
-            .from(sender.parse()?)
-            .to(recipient.parse()?)
-            .subject(subject)
-            .body(body)?;
-    
-        self.0.send(email).await?;
-        Ok(())
+        html_content: &str,
+        text_content: &str,
+    ) -> Result<(), String> {
+        todo!()
     }
 }

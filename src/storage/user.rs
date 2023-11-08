@@ -31,18 +31,18 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
                 (users.email, users.name, users.password, users.profile_photo, users.bio, users.email_confirmed, users.deleted_at, users.failed_attempts) IS DISTINCT FROM
                 (EXCLUDED.email, EXCLUDED.name, EXCLUDED.password, EXCLUDED.profile_photo, EXCLUDED.bio, EXCLUDED.email_confirmed, EXCLUDED.deleted_at, EXCLUDED.failed_attempts)
         "#,
-        user.id,
-        user.email,
-        user.handle,
-        user.name,
-        user.password,
-        user.profile_photo,
-        user.bio,
-        user.email_confirmed,
-        user.created_at,
-        user.updated_at,
-        user.deleted_at,
-        user.failed_attempts,
+        user.id(),
+        user.email(),
+        user.handle(),
+        user.name(),
+        user.password(),
+        user.profile_photo(),
+        user.bio(),
+        user.email_confirmed(),
+        user.created_at(),
+        user.updated_at(),
+        user.deleted_at(),
+        user.failed_attempts(),
     )
     .execute(db_pool)
     .await

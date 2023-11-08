@@ -61,10 +61,8 @@ pub struct DatabaseConfig {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct MailerConfig {
-    pub host: String,
-    pub port: u16,
-    pub username: String,
-    pub password: Secret<String>
+    pub base_url: String,
+    pub sender_email: String,
 }
 
 

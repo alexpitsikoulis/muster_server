@@ -1,7 +1,7 @@
 use actix_web::web::Form;
 use secrecy::Secret;
 
-use crate::handlers::LoginForm;
+use crate::handlers::user::LoginForm;
 
 use super::{Email, Handle};
 

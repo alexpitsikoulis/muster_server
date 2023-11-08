@@ -31,7 +31,7 @@ async fn test_login_success() {
             error_message,
         );
 
-        let token_matches = token_in_response_matches_user(user.id, response);
+        let token_matches = token_in_response_matches_user(user.id(), response);
         assert_ok!(
             &token_matches,
             "The API did not return auth token corresponding to the user when {}: {}",

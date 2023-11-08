@@ -1,4 +1,8 @@
 use secrecy::Secret;
+use wiremock::{
+    Mock, ResponseTemplate,
+    matchers::{path, method},
+};
 use muttr_server::{
     domain::user::Password,
     storage::USERS_TABLE_NAME,
@@ -11,6 +15,14 @@ use crate::utils::{
 #[tokio::test]
 async fn test_signup_success() {
     let app = TestApp::spawn().await;
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        // Change this back to 1 when mailer client is fully implemented
+        .expect(0)
+        .mount(&app.email_server)
+        .await;
 
     let body = "handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness";
     let response = app.client.request(
