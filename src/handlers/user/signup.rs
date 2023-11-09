@@ -6,8 +6,8 @@ use sqlx::PgPool;
 use secrecy::Secret;
 use crate::{
     domain::{
+        email,
         user::User,
-        mailer::Mailer,
     },
     storage::upsert_user,
 };
@@ -21,13 +21,13 @@ pub struct SignupFormData {
 
 #[tracing::instrument(
     name = "Signing up new user",
-    skip(form, db_pool),
+    skip(form, db_pool, email_client),
     fields(
         user_email = %form.email,
         user_handle = %form.handle,
     )
 )]
-pub async fn signup(form: Form<SignupFormData>, db_pool: Data<PgPool>) -> HttpResponse {
+pub async fn signup(form: Form<SignupFormData>, db_pool: Data<PgPool>, email_client: Data<email::Client>) -> HttpResponse {
     let user = match User::try_from(form) {
         Ok(u) => u,
         Err(e) => {

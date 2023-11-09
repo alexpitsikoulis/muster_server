@@ -8,7 +8,10 @@ use actix_web::{
     web::{get, post, Data},
 };
 use crate::{
-    domain::{mailer::Mailer, user::Email},
+    domain::{
+        email,
+        user::Email,
+    },
     config::{Config, DatabaseConfig, MailerConfig},
     handlers::{
         health_check::health_check,
@@ -39,7 +42,7 @@ impl App {
             },
         };
 
-        let mailer = Mailer::new(address.clone(), sender_email);
+        let mailer = email::Client::new(address.clone(), sender_email);
         
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
@@ -49,7 +52,7 @@ impl App {
     }
     
     
-    fn run(listener: TcpListener, db_pool: PgPool, mailer: Mailer) -> Result<Server, std::io::Error> {
+    fn run(listener: TcpListener, db_pool: PgPool, mailer: email::Client) -> Result<Server, std::io::Error> {
         let db_pool = Data::new(db_pool);
         let mailer = Data::new(mailer);
         let server = HttpServer::new(move || {

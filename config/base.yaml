@@ -8,4 +8,4 @@ database:
   database_name: "muttr"
 mailer:
   base_url: "localhost:2525"
-  sender_email: "noreply@muttr.com"
+  sender_email: "no-reply@muttr.com"

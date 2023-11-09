@@ -16,7 +16,7 @@ use crate::utils::{
 async fn test_signup_success() {
     let app = TestApp::spawn().await;
 
-    Mock::given(path("/email"))
+    Mock::given(path("/send"))
         .and(method("POST"))
         .respond_with(ResponseTemplate::new(200))
         // Change this back to 1 when mailer client is fully implemented
