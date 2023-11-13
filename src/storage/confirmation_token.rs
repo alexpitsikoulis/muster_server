@@ -1,6 +1,5 @@
 use secrecy::{Secret, ExposeSecret};
 use sqlx::{Error, PgPool};
-use uuid::Uuid;
 use crate::domain::confirmation_token::ConfirmationToken;
 
 #[tracing::instrument(
@@ -35,35 +34,59 @@ pub async fn insert_confirmation_token(
 
 #[tracing::instrument(
     name = "Getting confirmation_token from database",
-    skip(user_id, confirmation_token, db_pool),
-    fields(
-        user_id = %user_id,
-    )
+    skip(confirmation_token, db_pool),
+    fields()
 )]
 pub async fn get_confirmation_token(
     db_pool: &PgPool,
-    confirmation_token: Secret<String>,
-    user_id: Uuid
+    confirmation_token: &str,
 ) -> Result<ConfirmationToken, Error> {
     sqlx::query!(
         r#"
         SELECT confirmation_token, user_id
         FROM confirmation_tokens
         WHERE
-            confirmation_token = $1 AND
-            user_id = $2;
+            confirmation_token = $1;
         "#,
-        confirmation_token.expose_secret(),
-        user_id,
+        confirmation_token,
     )
         .fetch_one(db_pool)
         .await
         .map(|t| {
-            tracing::info!("GET confirmation_token for user {} successful", user_id);
+            tracing::info!("GET confirmation_token successful");
             ConfirmationToken::new(Secret::new(t.confirmation_token), t.user_id)
         })
         .map_err(|e| {
-            tracing::error!("GET confirmation_token for user {} failed: {:?}", user_id, e);
+            tracing::error!("GET confirmation_token failed: {:?}", e);
             e
         })
+}
+
+#[tracing::instrument(
+    name = "Deleting confirmation token",
+    skip(token, db_pool),
+)]
+pub async fn delete(
+    db_pool: &PgPool,
+    token: &ConfirmationToken,
+) -> Result<(), Error> {
+    sqlx::query!(
+        r#"
+        DELETE FROM confirmation_tokens
+        WHERE
+            confirmation_token = $1 AND
+            user_id = $2;
+        "#,
+        token.confirmation_token().expose_secret(),
+        token.user_id(),
+    )
+    .execute(db_pool)
+    .await
+    .map(|_| {
+        tracing::info!("DELETE confirmation token {} for user {} successful", token.confirmation_token().expose_secret(), token.user_id());
+    })
+    .map_err(|e| {
+        tracing::error!("DELETE confirmation token for user {} failed", token.user_id());
+        e
+    })
 }

@@ -5,8 +5,8 @@ use uuid::Uuid;
 use muttr_server::{
     config::DatabaseConfig,
     startup::App,
-    storage::upsert_user,
-    domain::user::{User, Password, Email, Handle},
+    storage::{upsert_user, insert_confirmation_token},
+    domain::{user::{User, Password, Email, Handle}, confirmation_token::ConfirmationToken}, utils::jwt::generate_token,
 };
 use super::{TEST_USER_EMAIL, TEST_USER_HANDLE, TEST_USER_PASSWORD};
 
@@ -64,6 +64,15 @@ impl TestDB {
         match upsert_user(&self.db_pool, &user).await {
             Ok(_) => user,
             Err(e) => panic!("Failed to insert user: {:?}", e),
+        }
+    }
+
+    pub async fn insert_confirmation_token(&mut self, user_id: Uuid) -> ConfirmationToken {
+        let token = generate_token(user_id).expect("Failed to generate test confirmation token");
+        let confirmation_token = ConfirmationToken::new(Secret::new(token), user_id);
+        match insert_confirmation_token(&self.db_pool, &confirmation_token).await {
+            Ok(()) => confirmation_token,
+            Err(e) => panic!("Failed to insert test confirmation token: {:?}", e)
         }
     }
     

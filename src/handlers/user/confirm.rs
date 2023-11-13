@@ -1,33 +1,24 @@
 use actix_web::{
-    HttpResponse,
-    web::{Query, Data}
+    HttpResponse, HttpRequest,
+    web::Data,
 };
 use chrono::Utc;
-use secrecy::{Secret, ExposeSecret};
+use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use crate::{
-    domain::confirmation_token::ConfirmationToken,
-    storage::{get_confirmation_token, confirm_user_email},
+    storage::{get_confirmation_token, confirm_user_email, delete},
     utils::jwt::get_claims_from_token
 };
 
-#[derive(serde::Deserialize, Clone)]
-pub struct GetConfirmationTokenData {
-    pub confirmation_token: Secret<String>,
-    pub user_id: String,
-}
-
 #[tracing::instrument(
     name = "Confirming user email",
-    skip(query, db_pool),
-    fields(
-        user_id = %query.user_id,
-    )
+    skip(req, db_pool),
+    fields()
 )]
-pub async fn confirm(query: Query<GetConfirmationTokenData>, db_pool: Data<PgPool>) -> HttpResponse {
-    match ConfirmationToken::try_from(query) {
-        Ok(confirmation_token) => {
-            match get_confirmation_token(&db_pool, confirmation_token.confirmation_token(), confirmation_token.user_id())
+pub async fn confirm(req: HttpRequest, db_pool: Data<PgPool>) -> HttpResponse {
+    match req.match_info().get("confirmation_token") {
+        Some(confirmation_token) => {
+            match get_confirmation_token(&db_pool, confirmation_token)
                 .await
                 {
                     Ok(confirmation_token) => {
@@ -46,6 +37,10 @@ pub async fn confirm(query: Query<GetConfirmationTokenData>, db_pool: Data<PgPoo
                                     tracing::error!("Confirmation token is expired");
                                     return HttpResponse::Unauthorized().body("Confirmation token is expired")
                                 };
+                                if let Err(e) = delete(&db_pool, &confirmation_token).await {
+                                    tracing::error!("Failed to delete confirmation token: {:?}", e);
+                                    return HttpResponse::InternalServerError().finish()
+                                }
                                 match confirm_user_email(&db_pool, confirmation_token.user_id())
                                     .await
                                     {
@@ -80,9 +75,9 @@ pub async fn confirm(query: Query<GetConfirmationTokenData>, db_pool: Data<PgPoo
                     }
                 }
         },
-        Err(e) => {
-            tracing::error!("Failed to parse user_id: {}", e);
-            HttpResponse::BadRequest().body(e)
+        None => {
+            tracing::error!("No URL parameter for confirmation token was provided. Request URL should be '/confirm/{{confirmation_token}}'");
+            HttpResponse::BadRequest().body("No URL parameter for confirmation token was provided. Request URL should be '/confirm/{confirmation_token}'")
         },
     }
 }

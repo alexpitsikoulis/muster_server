@@ -2,10 +2,12 @@
 mod tests {
     use std::str::FromStr;
 
-    use actix_web::web::Query;
     use secrecy::Secret;
     use uuid::Uuid;
-    use crate::{domain::confirmation_token::{ConfirmationToken, GetConfirmationTokenData}, utils::jwt::generate_token};
+    use crate::{
+        domain::confirmation_token::ConfirmationToken,
+        utils::jwt::generate_token,
+    };
 
     #[derive(Clone, Debug)]
     struct UserIdFixture(pub String);
@@ -22,7 +24,7 @@ mod tests {
         let user_id = user_id.0;
         let id = Uuid::from_str(&user_id).expect("Failed to parse user id from test fixture");
         let confirmation_token = Secret::new(generate_token(id).expect("Failed to generate confirmation token"));
-        let data: Query<GetConfirmationTokenData> = Query(GetConfirmationTokenData{ user_id, confirmation_token });
-        ConfirmationToken::try_from(data).is_ok()
+        ConfirmationToken::new(confirmation_token, Uuid::from_str(&user_id).unwrap());
+        true
     }
 }

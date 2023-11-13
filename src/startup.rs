@@ -60,6 +60,7 @@ impl App {
                 .route("/health-check", get().to(health_check))
                 .route("/signup", post().to(user::signup))
                 .route("/login", post().to(user::login))
+                .route("/confirm/{confirmation_token}", post().to(user::confirm))
                 .route("/servers", post().to(server::create_server))
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())

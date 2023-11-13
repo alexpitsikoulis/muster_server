@@ -9,7 +9,7 @@ use muttr_server::{
 };
 use crate::utils::{
     app::TestApp,
-    http_client::{Path, Header, ContentType}
+    http_client::{Path, Header, ContentType},
 };
 
 #[tokio::test]
