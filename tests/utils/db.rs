@@ -6,7 +6,7 @@ use muttr_server::{
     config::DatabaseConfig,
     startup::App,
     storage::upsert_user,
-    domain::user::{User, Password},
+    domain::user::{User, Password, Email, Handle},
 };
 use super::{TEST_USER_EMAIL, TEST_USER_HANDLE, TEST_USER_PASSWORD};
 
@@ -43,8 +43,8 @@ impl TestDB {
         let now = Utc::now();
         let mut user = User::new(
             Uuid::new_v4(),
-            TEST_USER_EMAIL.into(),
-            TEST_USER_HANDLE.into(),
+            Email::parse_str(TEST_USER_EMAIL).expect(&format!("Email '{}' is invalid", TEST_USER_EMAIL)),
+            Handle::parse_str(TEST_USER_HANDLE).expect(&format!("Handle '{}' is invalid", TEST_USER_HANDLE)),
             None,
             TEST_USER_PASSWORD.into(),
             None,

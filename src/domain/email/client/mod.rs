@@ -4,6 +4,7 @@ mod confirmation_email;
 use crate::domain::user;
 use super::Email;
 
+#[derive(Debug)]
 pub struct Client {
     http_client: reqwest::Client,
     base_url: String,
@@ -25,15 +26,12 @@ impl Client {
         subject: String,
         html_content: String,
         text_content: String,
-    ) -> Result<(), String> {
-        match self.http_client
-            .post(&format!("{}/send", self.base_url))
-            .body(Email::new(self.sender.clone(), recipient, subject, html_content, text_content).to_string())
+    ) -> Result<(), reqwest::Error> {
+        self.http_client
+            .post(format!("{}/send", self.base_url))
+            .json(&Email::new(self.sender.clone(), recipient, subject, html_content, text_content))
             .send()
-            .await
-            {
-                Ok(_) => Ok(()),
-                Err(e) => Err(e.to_string()),
-            }
+            .await?;
+        Ok(())
     }
 }

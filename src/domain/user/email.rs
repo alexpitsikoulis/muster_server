@@ -10,8 +10,12 @@ pub struct Email(String);
 
 impl Email {
     pub fn parse(email: String) -> Result<Self, EmailValidationErr> {
-        if Self::email_regex().is_match(email.as_str()) {
-            Ok(Self(email))
+        Self::parse_str(&email)
+    }
+
+    pub fn parse_str(email: &str) -> Result<Self, EmailValidationErr> {
+        if Self::email_regex().is_match(email) {
+            Ok(Self(email.to_string()))
         } else {
             Err(EmailValidationErr::EmailInvalidErr(format!("Email {} is invalid", email)))
         }

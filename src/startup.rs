@@ -1,6 +1,5 @@
-use lettre::transport::smtp::authentication::Credentials;
 use sqlx::{PgPool, postgres::PgPoolOptions};
-use std::{net::TcpListener, sync::Arc};
+use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 use actix_web::{
     HttpServer,
@@ -12,7 +11,7 @@ use crate::{
         email,
         user::Email,
     },
-    config::{Config, DatabaseConfig, MailerConfig},
+    config::{Config, DatabaseConfig},
     handlers::{
         health_check::health_check,
         user,
@@ -34,27 +33,27 @@ impl App {
         
         let db_pool = Self::get_connection_pool(&config.database);
 
-        let sender_email = match Email::parse(config.mailer.sender_email) {
+        let sender_email = match Email::parse(config.email_client.sender_email) {
             Ok(email) => email,
             Err(e) => {
-                tracing::error!("Failed to parse mailer sender_email from config: {:?}", e);
-                panic!("Failed to parse mailer sender_email from config: {:?}", e)
+                tracing::error!("Failed to parse email_client.sender_email from config: {:?}", e);
+                panic!("Failed to parse email_client.sender_email from config: {:?}", e)
             },
         };
 
-        let mailer = email::Client::new(address.clone(), sender_email);
+        let email_client = email::Client::new(config.email_client.base_url, sender_email);
         
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = Self::run(listener, db_pool, mailer)?;
+        let server = Self::run(listener, db_pool, email_client)?;
         
         Ok(Self{ port, server })
     }
     
     
-    fn run(listener: TcpListener, db_pool: PgPool, mailer: email::Client) -> Result<Server, std::io::Error> {
+    fn run(listener: TcpListener, db_pool: PgPool, email_client: email::Client) -> Result<Server, std::io::Error> {
         let db_pool = Data::new(db_pool);
-        let mailer = Data::new(mailer);
+        let email_client = Data::new(email_client);
         let server = HttpServer::new(move || {
             actix_web::App::new()
                 .wrap(TracingLogger::default())
@@ -63,7 +62,7 @@ impl App {
                 .route("/login", post().to(user::login))
                 .route("/servers", post().to(server::create_server))
                 .app_data(db_pool.clone())
-                .app_data(mailer.clone())
+                .app_data(email_client.clone())
             })
                 .listen(listener)?
                 .run();

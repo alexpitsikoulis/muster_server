@@ -19,8 +19,7 @@ async fn test_signup_success() {
     Mock::given(path("/send"))
         .and(method("POST"))
         .respond_with(ResponseTemplate::new(200))
-        // Change this back to 1 when mailer client is fully implemented
-        .expect(0)
+        .expect(1)
         .mount(&app.email_server)
         .await;
 

@@ -8,7 +8,7 @@ pub enum HandleValidationErr {
 
 pub const ALLOWED_HANDLE_CHARS: &[char] =  &['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '#', '$', '%', '&', '*', '+', ',', '-', '.', ':', ';', '=', '?', '@', '[', ']', '^', '_', '`', '|', '~'];
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Handle(String);
 
 impl Handle {
@@ -32,6 +32,10 @@ impl Handle {
             return Err(HandleValidationErr::HandleContainsForbiddenChars(forbidden_character.unwrap()))
         }
         Ok(Handle(handle))
+    }
+
+    pub fn parse_str(handle: &str) -> Result<Self, HandleValidationErr> {
+        Self::parse(handle.to_string())
     }
 }
 

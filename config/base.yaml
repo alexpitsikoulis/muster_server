@@ -6,6 +6,6 @@ database:
   username: "postgres"
   password: "password"
   database_name: "muttr"
-mailer:
-  base_url: "localhost:2525"
+email_client:
+  base_url: "localhost"
   sender_email: "no-reply@muttr.com"

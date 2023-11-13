@@ -1,7 +1,7 @@
 use muttr_server::{
     startup::App,
     config::get_config,
-    utils::telemetry::{create_subscriber, init_subscriber}
+    utils::telemetry::{create_subscriber, init_subscriber},
 };
 
 #[tokio::main]

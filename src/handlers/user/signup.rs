@@ -7,9 +7,9 @@ use secrecy::Secret;
 use crate::{
     domain::{
         email,
-        user::User,
+        user::User, confirmation_token::ConfirmationToken,
     },
-    storage::upsert_user,
+    storage::{upsert_user, insert_confirmation_token}, utils::jwt::generate_token,
 };
 
 #[derive(serde::Deserialize, Clone)]
@@ -39,7 +39,33 @@ pub async fn signup(form: Form<SignupFormData>, db_pool: Data<PgPool>, email_cli
     match upsert_user(db_pool.get_ref(), &user).await {
         Ok(()) => {
             tracing::info!("User {:?} successfully inserted to database", user);
-            HttpResponse::Ok().finish()
+            match generate_token(user.id()) {
+                Ok(token) => {
+                    let confirmation_token = ConfirmationToken::new(
+                        Secret::new(token),
+                        user.id(),
+                    );
+                    match insert_confirmation_token(&db_pool, &confirmation_token).await {
+                        Ok(()) => {
+                            match email_client.send_confirmation_email(user.email(), confirmation_token.confirmation_token()).await {
+                                Ok(()) => HttpResponse::Ok().finish(),
+                                Err(e) => {
+                                    tracing::error!("Failed to send confirmation email for user {}: {:?}", user.id(), e);
+                                    HttpResponse::InternalServerError().finish()
+                                },
+                            }
+                        },
+                        Err(e) => {
+                            tracing::error!("Failed to insert confirmation token for user {}: {:?}", user.id(), e);
+                            HttpResponse::InternalServerError().finish()
+                        }
+                    }
+                },
+                Err(e) => {
+                    tracing::error!("Failed to generate confirmation token for user {}: {:?}", user.id(), e);
+                    HttpResponse::InternalServerError().finish()
+                }
+            }
         },
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

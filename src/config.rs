@@ -40,7 +40,7 @@ impl From<String> for Env {
 pub struct Config {
     pub app: AppConfig,
     pub database: DatabaseConfig,
-    pub mailer: MailerConfig,
+    pub email_client: EmailClientConfig,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -60,7 +60,7 @@ pub struct DatabaseConfig {
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct MailerConfig {
+pub struct EmailClientConfig {
     pub base_url: String,
     pub sender_email: String,
 }

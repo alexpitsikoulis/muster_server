@@ -52,8 +52,8 @@ impl UserValidationError {
 #[derive(Clone, Debug)]
 pub struct User {
     id: Uuid,
-    email: String,
-    handle: String,
+    email: Email,
+    handle: Handle,
     name: Option<String>,
     password: String,
     profile_photo: Option<String>,
@@ -68,8 +68,8 @@ pub struct User {
 impl User {
     pub fn new(
         id: Uuid,
-        email: String,
-        handle: String,
+        email: Email,
+        handle: Handle,
         name: Option<String>,
         password: String,
         profile_photo: Option<String>,
@@ -100,11 +100,11 @@ impl User {
         self.id
     }
 
-    pub fn email(&self) -> String {
+    pub fn email(&self) -> Email {
         self.email.clone()
     }
 
-    pub fn handle(&self) -> String {
+    pub fn handle(&self) -> Handle {
         self.handle.clone()
     }
 
@@ -149,11 +149,37 @@ impl User {
     }
 
     pub fn set_email(&mut self, email: Email) {
-        self.email = email.as_ref().to_string();
+        self.email = email;
+    }
+
+    pub fn set_email_string(&mut self, email: String) -> Result<(), EmailValidationErr> {
+        match Email::parse_str(&email) {
+            Ok(email) => {
+                self.email = email;
+                Ok(())
+            },
+            Err(e) => {
+                tracing::error!("User email {} is invalid: {:?}", email, e);
+                Err(e)
+            }
+        }
     }
 
     pub fn set_handle(&mut self, handle: Handle) {
-        self.handle = handle.as_ref().to_string();
+        self.handle = handle;
+    }
+
+    pub fn set_handle_string(&mut self, handle: String) -> Result<(), HandleValidationErr> {
+        match Handle::parse_str(&handle) {
+            Ok(handle) => {
+                self.handle = handle;
+                Ok(())
+            },
+            Err(e) => {
+                tracing::error!("User handle {} is invalid: {:?}", handle, e);
+                Err(e)
+            }
+        }
     }
 
     pub fn set_name(&mut self, name: Option<String>) {
@@ -213,8 +239,8 @@ impl TryFrom<Form<SignupFormData>> for User {
 
         Ok(User::new(
             Uuid::new_v4(),
-            email.as_ref().to_string(),
-            handle.as_ref().to_string(),
+            email,
+            handle,
             None,
             password.as_ref().to_string(),
             None,

@@ -1,7 +1,7 @@
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
-use crate::domain::user::User;
+use crate::domain::user::{User, Email, Handle};
 
 pub const USERS_TABLE_NAME: &str = "users";
 
@@ -32,8 +32,8 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
                 (EXCLUDED.email, EXCLUDED.name, EXCLUDED.password, EXCLUDED.profile_photo, EXCLUDED.bio, EXCLUDED.email_confirmed, EXCLUDED.deleted_at, EXCLUDED.failed_attempts)
         "#,
         user.id(),
-        user.email(),
-        user.handle(),
+        user.email().as_ref().to_string(),
+        user.handle().as_ref().to_string(),
         user.name(),
         user.password(),
         user.profile_photo(),
@@ -97,8 +97,8 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
         tracing::info!("GET user by id {} successful", id);
         User::new(
             u.id,
-            u.email,
-            u.handle,
+            Email::parse_str(&u.email).expect(&format!("User {} has invalid email '{}' in database", u.id, u.email)),
+            Handle::parse_str(&u.handle).expect(&format!("User {} has invalid handle '{}' in daatabase", u.id, u.handle)),
             u.name,
             u.password,
             u.profile_photo,
@@ -137,8 +137,8 @@ pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, 
             tracing::info!("GET user by email {} successful", email);
             User::new(
                 u.id,
-                u.email,
-                u.handle,
+                Email::parse_str(&u.email).expect(&format!("User {} has invalid email '{}' in database", u.id, u.email)),
+                Handle::parse_str(&u.handle).expect(&format!("User {} has invalid handle '{}' in database", u.id, u.handle)),
                 u.name,
                 u.password,
                 u.profile_photo,
@@ -177,8 +177,8 @@ pub async fn get_user_by_handle(db_pool: &PgPool, handle: String) -> Result<User
             tracing::info!("GET user by handle {} successful", handle);
             User::new(
                 u.id,
-                u.email,
-                u.handle,
+                Email::parse_str(&u.email).expect(&format!("User {} has invalid email '{}' in database", u.id, u.email)),
+                Handle::parse_str(&u.handle).expect(&format!("User {} has invalid handle '{}' in database", u.id, u.handle)),
                 u.name,
                 u.password,
                 u.profile_photo,
