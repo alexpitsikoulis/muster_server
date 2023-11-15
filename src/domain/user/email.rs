@@ -2,7 +2,7 @@ use regex::Regex;
 
 #[derive(Debug)]
 pub enum EmailValidationErr {
-    EmailInvalidErr(String)
+    EmailInvalidErr(String),
 }
 
 #[derive(Debug, Clone)]
@@ -17,12 +17,15 @@ impl Email {
         if Self::email_regex().is_match(email) {
             Ok(Self(email.to_string()))
         } else {
-            Err(EmailValidationErr::EmailInvalidErr(format!("Email {} is invalid", email)))
+            Err(EmailValidationErr::EmailInvalidErr(format!(
+                "Email {} is invalid",
+                email
+            )))
         }
     }
 
     fn email_regex() -> Regex {
-        Regex::new(r"^[a-zA-Z0-9]{1}[\w\.\-]*[a-zA-Z]+@[a-zA-Z0-9]{1}\.?(([\w\-]+)(\.?[a-zA-Z0-9]))+\.[a-zA-Z0-9]{2,4}$").unwrap()
+        Regex::new(r"^[a-zA-Z0-9]{1}[\w\.\-]*[a-zA-Z0-9]+@[a-zA-Z0-9]{1}\.?(([\w\-]+)(\.?[a-zA-Z0-9]))+\.[a-zA-Z0-9]{2,4}$").unwrap()
     }
 }
 

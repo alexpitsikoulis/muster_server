@@ -1,23 +1,19 @@
-use sqlx::{PgPool, postgres::PgPoolOptions};
+use crate::{
+    config::{Config, DatabaseConfig},
+    domain::{email, user::Email},
+    handlers::{
+        health_check::{health_check, HEALTH_CHECK_PATH},
+        server, user,
+    },
+};
+use actix_web::{
+    dev::Server,
+    web::{get, post, put, Data},
+    HttpServer,
+};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
-use actix_web::{
-    HttpServer,
-    dev::Server,
-    web::{get, post, Data},
-};
-use crate::{
-    domain::{
-        email,
-        user::Email,
-    },
-    config::{Config, DatabaseConfig},
-    handlers::{
-        health_check::health_check,
-        user,
-        server,
-    },
-};
 
 pub struct App {
     port: u16,
@@ -26,47 +22,60 @@ pub struct App {
 
 impl App {
     pub async fn build(config: Config) -> Result<Self, std::io::Error> {
-        let address = format!(
-            "{}:{}",
-            config.app.host, config.app.port,
-        );
-        
+        let address = format!("{}:{}", config.app.host, config.app.port,);
+
         let db_pool = Self::get_connection_pool(&config.database);
 
         let sender_email = match Email::parse(config.email_client.sender_email) {
             Ok(email) => email,
             Err(e) => {
-                tracing::error!("Failed to parse email_client.sender_email from config: {:?}", e);
-                panic!("Failed to parse email_client.sender_email from config: {:?}", e)
-            },
+                tracing::error!(
+                    "Failed to parse email_client.sender_email from config: {:?}",
+                    e
+                );
+                panic!(
+                    "Failed to parse email_client.sender_email from config: {:?}",
+                    e
+                )
+            }
         };
 
         let email_client = email::Client::new(config.email_client.base_url, sender_email);
-        
+
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
         let server = Self::run(listener, db_pool, email_client)?;
-        
-        Ok(Self{ port, server })
+
+        Ok(Self { port, server })
     }
-    
-    
-    fn run(listener: TcpListener, db_pool: PgPool, email_client: email::Client) -> Result<Server, std::io::Error> {
+
+    fn run(
+        listener: TcpListener,
+        db_pool: PgPool,
+        email_client: email::Client,
+    ) -> Result<Server, std::io::Error> {
         let db_pool = Data::new(db_pool);
         let email_client = Data::new(email_client);
         let server = HttpServer::new(move || {
             actix_web::App::new()
                 .wrap(TracingLogger::default())
-                .route("/health-check", get().to(health_check))
-                .route("/signup", post().to(user::signup))
-                .route("/login", post().to(user::login))
-                .route("/confirm/{confirmation_token}", post().to(user::confirm))
-                .route("/servers", post().to(server::create_server))
+                .route(HEALTH_CHECK_PATH, get().to(health_check))
+                .route(user::SIGNUP_PATH, post().to(user::signup))
+                .route(user::LOGIN_PATH, post().to(user::login))
+                .route(
+                    format!("{}/{{confirmation_token}}", user::CONFIRM_PATH).as_str(),
+                    post().to(user::confirm),
+                )
+                .route(server::BASE_PATH, post().to(server::create))
+                .route(
+                    format!("{}/{{server_id}}", server::BASE_PATH).as_str(),
+                    put().to(server::update),
+                )
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())
-            })
-                .listen(listener)?
-                .run();
+        })
+        .listen(listener)?
+        .run();
         Ok(server)
     }
 

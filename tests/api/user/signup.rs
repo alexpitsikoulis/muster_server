@@ -1,15 +1,14 @@
-use secrecy::Secret;
-use wiremock::{
-    Mock, ResponseTemplate,
-    matchers::{path, method},
-};
-use muttr_server::{
-    domain::user::Password,
-    storage::USERS_TABLE_NAME,
-};
 use crate::utils::{
     app::TestApp,
-    http_client::{Path, Header, ContentType},
+    http_client::{ContentType, Header, Path},
+};
+use muttr_server::{
+    domain::user::Password, handlers::user::SIGNUP_PATH, storage::USERS_TABLE_NAME,
+};
+use secrecy::Secret;
+use wiremock::{
+    matchers::{method, path},
+    Mock, ResponseTemplate,
 };
 
 #[tokio::test]
@@ -23,12 +22,16 @@ async fn test_signup_success() {
         .mount(&app.email_server)
         .await;
 
-    let body = "handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness";
-    let response = app.client.request(
-        Path::POST("/signup"),
-        &[Header::ContentType(ContentType::FormURLEncoded)],
-        Some(body)
-    ).await;
+    let body =
+        "handle=alex.pitsikoulis&email=alex.pitsikoulis%40youwish.com&password=N0neofyourbus!ness";
+    let response = app
+        .client
+        .request(
+            Path::POST(SIGNUP_PATH),
+            &[Header::ContentType(ContentType::FormURLEncoded)],
+            Some(body),
+        )
+        .await;
 
     assert_eq!(
         200,
@@ -40,23 +43,22 @@ async fn test_signup_success() {
         "SELECT handle, email, password FROM users WHERE email = 'alex.pitsikoulis@youwish.com'",
     )
     .fetch_one(&app.database.db_pool)
-    .await {
+    .await
+    {
         Ok(user) => {
             assert_eq!(
-                "alex.pitsikoulis",
-                user.handle,
+                "alex.pitsikoulis", user.handle,
                 "Inserted handle does not match the one provided in the request",
             );
             assert_eq!(
-                "alex.pitsikoulis@youwish.com",
-                user.email,
+                "alex.pitsikoulis@youwish.com", user.email,
                 "Inserted email does not match the one provided in the request",
             );
             assert!(
-                Password::compare(Secret::new("N0neofyourbus!ness".into()),user.password),
+                Password::compare(Secret::new("N0neofyourbus!ness".into()), user.password),
                 "Inserted password does not match the one provided in the request",
             );
-        },
+        }
         Err(e) => {
             panic!("DB query failed: {}", e);
         }
@@ -95,11 +97,14 @@ async fn test_signup_failed_400() {
     ];
 
     for (invalid_body, error_message) in test_cases {
-        let response = app.client.request(
-            Path::POST("/signup"),
-            &[Header::ContentType(ContentType::FormURLEncoded)],
-            Some(invalid_body)
-        ).await;
+        let response = app
+            .client
+            .request(
+                Path::POST(SIGNUP_PATH),
+                &[Header::ContentType(ContentType::FormURLEncoded)],
+                Some(invalid_body),
+            )
+            .await;
 
         assert_eq!(
             400,

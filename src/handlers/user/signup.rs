@@ -1,16 +1,16 @@
-use actix_web::{
-    HttpResponse,
-    web::{Data, Form}
-};
-use sqlx::PgPool;
-use secrecy::Secret;
 use crate::{
-    domain::{
-        email,
-        user::User, confirmation_token::ConfirmationToken,
-    },
-    storage::{upsert_user, insert_confirmation_token}, utils::jwt::generate_token,
+    domain::{confirmation_token::ConfirmationToken, email, user::User},
+    storage::{insert_confirmation_token, upsert_user},
+    utils::jwt::generate_token,
 };
+use actix_web::{
+    web::{Data, Form},
+    HttpResponse,
+};
+use secrecy::Secret;
+use sqlx::PgPool;
+
+pub const SIGNUP_PATH: &'static str = "/users/signup";
 
 #[derive(serde::Deserialize, Clone)]
 pub struct SignupFormData {
@@ -27,13 +27,17 @@ pub struct SignupFormData {
         user_handle = %form.handle,
     )
 )]
-pub async fn signup(form: Form<SignupFormData>, db_pool: Data<PgPool>, email_client: Data<email::Client>) -> HttpResponse {
+pub async fn signup(
+    form: Form<SignupFormData>,
+    db_pool: Data<PgPool>,
+    email_client: Data<email::Client>,
+) -> HttpResponse {
     let user = match User::try_from(form) {
         Ok(u) => u,
         Err(e) => {
             tracing::error!("Failed to validate new user: {:?}", e);
-            return e.handle_http()
-        },
+            return e.handle_http();
+        }
     };
 
     match upsert_user(db_pool.get_ref(), &user).await {
@@ -41,32 +45,47 @@ pub async fn signup(form: Form<SignupFormData>, db_pool: Data<PgPool>, email_cli
             tracing::info!("User {:?} successfully inserted to database", user);
             match generate_token(user.id()) {
                 Ok(token) => {
-                    let confirmation_token = ConfirmationToken::new(
-                        Secret::new(token),
-                        user.id(),
-                    );
+                    let confirmation_token = ConfirmationToken::new(Secret::new(token), user.id());
                     match insert_confirmation_token(&db_pool, &confirmation_token).await {
                         Ok(()) => {
-                            match email_client.send_confirmation_email(user.email(), confirmation_token.confirmation_token()).await {
+                            match email_client
+                                .send_confirmation_email(
+                                    user.email(),
+                                    confirmation_token.confirmation_token(),
+                                )
+                                .await
+                            {
                                 Ok(()) => HttpResponse::Ok().finish(),
                                 Err(e) => {
-                                    tracing::error!("Failed to send confirmation email for user {}: {:?}", user.id(), e);
+                                    tracing::error!(
+                                        "Failed to send confirmation email for user {}: {:?}",
+                                        user.id(),
+                                        e
+                                    );
                                     HttpResponse::InternalServerError().finish()
-                                },
+                                }
                             }
-                        },
+                        }
                         Err(e) => {
-                            tracing::error!("Failed to insert confirmation token for user {}: {:?}", user.id(), e);
+                            tracing::error!(
+                                "Failed to insert confirmation token for user {}: {:?}",
+                                user.id(),
+                                e
+                            );
                             HttpResponse::InternalServerError().finish()
                         }
                     }
-                },
+                }
                 Err(e) => {
-                    tracing::error!("Failed to generate confirmation token for user {}: {:?}", user.id(), e);
+                    tracing::error!(
+                        "Failed to generate confirmation token for user {}: {:?}",
+                        user.id(),
+                        e
+                    );
                     HttpResponse::InternalServerError().finish()
                 }
             }
-        },
+        }
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
