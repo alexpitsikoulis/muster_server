@@ -78,7 +78,7 @@ impl DatabaseConfig {
         PgConnectOptions::new()
             .host(&self.host)
             .username(&self.username)
-            .password(&self.password.expose_secret())
+            .password(self.password.expose_secret())
             .port(self.port)
             .ssl_mode(ssl_mode)
     }
@@ -100,7 +100,7 @@ pub fn get_config() -> Result<Config, config::ConfigError> {
 
     let settings = config::Config::builder()
         .add_source(config::File::from(config_directory.join("base.yaml")))
-        .add_source(config::File::from(config_directory.join(&env_filename)))
+        .add_source(config::File::from(config_directory.join(env_filename)))
         .add_source(
             config::Environment::with_prefix("APP")
                 .prefix_separator("_")

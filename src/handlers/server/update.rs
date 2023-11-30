@@ -22,11 +22,11 @@ pub struct UpdateServerRequestData {
     name = "Updating server details",
     skip(req, server_details, db_pool),
     fields(
-        name = %server_details.clone().name.unwrap_or(String::new()),
-        owner_id = %server_details.clone().owner_id.unwrap_or(String::new()),
-        description = %server_details.clone().description.unwrap_or(String::new()),
-        photo = %server_details.clone().photo.unwrap_or(String::new()),
-        cover_photo = %server_details.clone().cover_photo.unwrap_or(String::new()),
+        name = %server_details.clone().name.unwrap_or_default(),
+        owner_id = %server_details.clone().owner_id.unwrap_or_default(),
+        description = %server_details.clone().description.unwrap_or_default(),
+        photo = %server_details.clone().photo.unwrap_or_default(),
+        cover_photo = %server_details.clone().cover_photo.unwrap_or_default(),
     )
 )]
 pub async fn update(
@@ -50,7 +50,7 @@ pub async fn update(
                         },
                         Err(e) => {
                             tracing::error!("Failed to parse owner_id '{}' into UUID: {:?}", server_details.clone().owner_id.unwrap(), e);
-                            HttpResponse::BadRequest().body(format!("Provided owner_id is invalid, please provide a valid UUID"))
+                            HttpResponse::BadRequest().body("Provided owner_id is invalid, please provide a valid UUID")
                         }
                     }
                 },

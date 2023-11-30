@@ -57,19 +57,19 @@ impl Password {
         let mut has_number = false;
         let mut has_char = false;
 
-        for c in password.expose_secret().chars().into_iter() {
+        for c in password.expose_secret().chars() {
             if has_lower && has_upper && has_number && has_char {
                 break;
             }
-            if !has_lower && c >= 'a' && c <= 'z' {
+            if !has_lower && c.is_ascii_lowercase() {
                 has_lower = true;
                 continue;
             }
-            if !has_upper && c >= 'A' && c <= 'Z' {
+            if !has_upper && c.is_ascii_uppercase() {
                 has_upper = true;
                 continue;
             }
-            if !has_number && c >= '0' && c <= '9' {
+            if !has_number && c.is_ascii_digit() {
                 has_number = true;
                 continue;
             }

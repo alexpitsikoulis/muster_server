@@ -10,7 +10,7 @@ use actix_web::{
 use secrecy::Secret;
 use sqlx::PgPool;
 
-pub const SIGNUP_PATH: &'static str = "/users/signup";
+pub const SIGNUP_PATH: &str = "/users/signup";
 
 #[derive(serde::Deserialize, Clone)]
 pub struct SignupFormData {

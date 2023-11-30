@@ -71,15 +71,15 @@ impl RandomStringGenerator {
         let mut s = String::new();
 
         if self.req_lowercase {
-            s.push(*rng.choose(&LOWERCASE).unwrap());
+            s.push(*rng.choose(LOWERCASE).unwrap());
             inserted += 1;
         };
         if self.req_uppercase {
-            s.push(*rng.choose(&UPPERCASE).unwrap());
+            s.push(*rng.choose(UPPERCASE).unwrap());
             inserted += 1;
         };
         if self.req_number {
-            s.push(*rng.choose(&NUMBERS).unwrap());
+            s.push(*rng.choose(NUMBERS).unwrap());
             inserted += 1;
         };
         if self.req_symbol {
@@ -121,5 +121,5 @@ pub const PASSWORD_GENERATOR: RandomStringGenerator = RandomStringGenerator {
 pub fn gen_range(min: i32, max: i32, rng: &mut Gen) -> i32 {
     let length_range = Vec::<i32>::from_iter(min..=max);
     let length = rng.choose(length_range.as_slice()).unwrap();
-    return *length;
+    *length
 }

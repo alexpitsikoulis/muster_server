@@ -140,16 +140,16 @@ impl AsServer for Server {
     }
 }
 
-impl Into<Server> for CreateServerRequestDataWithOwner {
-    fn into(self) -> Server {
+impl From<CreateServerRequestDataWithOwner> for Server {
+    fn from(val: CreateServerRequestDataWithOwner) -> Self {
         let now = Utc::now();
         Server::new(
             Uuid::new_v4(),
-            self.data.name.clone(),
-            self.owner_id,
-            self.data.description.clone(),
-            self.data.photo.clone(),
-            self.data.cover_photo.clone(),
+            val.data.name.clone(),
+            val.owner_id,
+            val.data.description.clone(),
+            val.data.photo.clone(),
+            val.data.cover_photo.clone(),
             now,
             now,
             None,

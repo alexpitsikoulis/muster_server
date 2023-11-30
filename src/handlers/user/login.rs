@@ -11,7 +11,7 @@ use crate::{
     utils::jwt::generate_token,
 };
 
-pub const LOGIN_PATH: &'static str = "/users/login";
+pub const LOGIN_PATH: &str = "/users/login";
 
 #[derive(serde::Deserialize)]
 pub struct LoginForm {
@@ -71,7 +71,7 @@ pub async fn login(form: Form<LoginForm>, db_pool: Data<PgPool>) -> HttpResponse
                     .append_header(("Authorization", token))
                     .finish(),
                 Err(e) => {
-                    tracing::error!("Failed to generate JWT: {}", e);
+                    tracing::error!("Failed to generate JWT: {:?}", e);
                     HttpResponse::InternalServerError().finish()
                 }
             }

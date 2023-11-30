@@ -102,8 +102,8 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
         tracing::info!("GET user by id {} successful", id);
         User::new(
             u.id,
-            Email::parse_str(&u.email).expect(&format!("User {} has invalid email '{}' in database", u.id, u.email)),
-            Handle::parse_str(&u.handle).expect(&format!("User {} has invalid handle '{}' in daatabase", u.id, u.handle)),
+            Email::parse_str(&u.email).unwrap_or_else(|_| panic!("User {} has invalid email '{}' in database", u.id, u.email)),
+            Handle::parse_str(&u.handle).unwrap_or_else(|_| panic!("User {} has invalid handle '{}' in daatabase", u.id, u.handle)),
             u.name,
             u.password,
             u.profile_photo,
@@ -142,8 +142,8 @@ pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, 
             tracing::info!("GET user by email {} successful", email);
             User::new(
                 u.id,
-                Email::parse_str(&u.email).expect(&format!("User {} has invalid email '{}' in database", u.id, u.email)),
-                Handle::parse_str(&u.handle).expect(&format!("User {} has invalid handle '{}' in database", u.id, u.handle)),
+                Email::parse_str(&u.email).unwrap_or_else(|_| panic!("User {} has invalid email '{}' in database", u.id, u.email)),
+                Handle::parse_str(&u.handle).unwrap_or_else(|_| panic!("User {} has invalid handle '{}' in database", u.id, u.handle)),
                 u.name,
                 u.password,
                 u.profile_photo,
@@ -182,8 +182,8 @@ pub async fn get_user_by_handle(db_pool: &PgPool, handle: String) -> Result<User
             tracing::info!("GET user by handle {} successful", handle);
             User::new(
                 u.id,
-                Email::parse_str(&u.email).expect(&format!("User {} has invalid email '{}' in database", u.id, u.email)),
-                Handle::parse_str(&u.handle).expect(&format!("User {} has invalid handle '{}' in database", u.id, u.handle)),
+                Email::parse_str(&u.email).unwrap_or_else(|_| panic!("User {} has invalid email '{}' in database", u.id, u.email)),
+                Handle::parse_str(&u.handle).unwrap_or_else(|_| panic!("User {} has invalid handle '{}' in database", u.id, u.handle)),
                 u.name,
                 u.password,
                 u.profile_photo,

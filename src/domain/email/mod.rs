@@ -22,24 +22,10 @@ impl Email {
         let sender = sender.as_ref().to_string();
         let recipient = recipient.as_ref().to_string();
         Email {
-            sender: sender,
-            recipient: recipient,
-            subject: subject,
+            sender,
+            recipient,
+            subject,
             body: format!("{}{}", html_content, text_content),
         }
-    }
-
-    pub fn to_string(&self) -> String {
-        format!(
-            r#"
-                {{
-                    "sender": "{}",
-                    "recipient": "{}",
-                    "subject": "{}",
-                    "body": "{}"
-                }}
-            "#,
-            self.sender, self.recipient, self.subject, self.body,
-        )
     }
 }

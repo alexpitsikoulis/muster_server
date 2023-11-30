@@ -7,7 +7,7 @@ use chrono::Utc;
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 
-pub const CONFIRM_PATH: &'static str = "/users/confirm";
+pub const CONFIRM_PATH: &str = "/users/confirm";
 
 #[tracing::instrument(name = "Confirming user email", skip(req, db_pool), fields())]
 pub async fn confirm(req: HttpRequest, db_pool: Data<PgPool>) -> HttpResponse {

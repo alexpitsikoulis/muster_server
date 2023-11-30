@@ -77,7 +77,7 @@ pub async fn create(
                     }
                 }
                 Err(e) => {
-                    tracing::error!("403 - Failed to get claims from JWT: {}", e);
+                    tracing::error!("403 - Failed to get claims from JWT: {:?}", e);
                     return HttpResponse::Forbidden().finish();
                 }
             }
