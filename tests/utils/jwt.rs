@@ -6,10 +6,8 @@ pub fn token_in_response_matches_user(user_id: Uuid, res: Response) -> Result<St
     let token = match res.headers().get("Authorization") {
         Some(t) => match t.to_str() {
             Ok(t) => t.to_string(),
-            Err(e) => {
-                return Err(format!("Failed to parse token to str: {:?}", e))
-            }
-        }
+            Err(e) => return Err(format!("Failed to parse token to str: {:?}", e)),
+        },
         None => return Err("Authorization header not present in response".to_string()),
     };
     let claims = get_claims_from_token(token.clone()).expect("Invalid token received");

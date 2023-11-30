@@ -1,5 +1,8 @@
-use secrecy::{Secret, ExposeSecret};
-use sqlx::{postgres::{PgConnectOptions, PgSslMode}, ConnectOptions};
+use secrecy::{ExposeSecret, Secret};
+use sqlx::{
+    postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
+};
 
 #[derive(PartialEq)]
 pub enum Env {
@@ -31,7 +34,7 @@ impl From<String> for Env {
                     other
                 );
                 Self::Local
-            },
+            }
         }
     }
 }
@@ -65,7 +68,6 @@ pub struct EmailClientConfig {
     pub sender_email: String,
 }
 
-
 impl DatabaseConfig {
     pub fn without_db(&self) -> PgConnectOptions {
         let ssl_mode = if self.require_ssl {
@@ -89,25 +91,20 @@ impl DatabaseConfig {
 }
 
 pub fn get_config() -> Result<Config, config::ConfigError> {
-    let base_path = std::env::current_dir()
-        .expect("Failed to determine the current directory");
+    let base_path = std::env::current_dir().expect("Failed to determine the current directory");
     let config_directory = base_path.join("config");
     let env: Env = std::env::var("APP_ENVIRONMENT")
         .unwrap_or_else(|_| "local".into())
         .into();
     let env_filename = format!("{}.yaml", env.as_str());
-    
+
     let settings = config::Config::builder()
-        .add_source(
-            config::File::from(config_directory.join("base.yaml"))
-        )
-        .add_source(
-            config::File::from(config_directory.join(&env_filename))
-        )
+        .add_source(config::File::from(config_directory.join("base.yaml")))
+        .add_source(config::File::from(config_directory.join(&env_filename)))
         .add_source(
             config::Environment::with_prefix("APP")
                 .prefix_separator("_")
-                .separator("__")
+                .separator("__"),
         )
         .build()?;
 

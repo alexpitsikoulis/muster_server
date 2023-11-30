@@ -1,12 +1,15 @@
-mod path;
 mod header;
+mod path;
 
-pub use path::*;
 pub use header::*;
+pub use path::*;
 
-use reqwest::{IntoUrl, header::{HeaderMap, HeaderValue}};
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    IntoUrl,
+};
 
-pub struct Client{
+pub struct Client {
     client: reqwest::Client,
     base_url: String,
 }
@@ -14,26 +17,28 @@ pub struct Client{
 impl Client {
     pub fn new(base_url: String) -> Self {
         let client = reqwest::Client::new();
-        Client{ client, base_url }
+        Client { client, base_url }
     }
 
     pub async fn request<B, U>(
         &self,
         path: Path<U>,
         headers: &[Header],
-        body: Option<B>
+        body: Option<B>,
     ) -> reqwest::Response
-    where 
+    where
         B: Into<reqwest::Body>,
-        U: IntoUrl
+        U: IntoUrl,
     {
-        let mut request = path.builder(self)
-            .headers(Self::parse_headers(headers));
+        let mut request = path.builder(self).headers(Self::parse_headers(headers));
         if let Some(body) = body {
             request = request.body(body);
         };
 
-        request.send().await.expect(&format!("Failed to execute request {:?}", path))
+        request
+            .send()
+            .await
+            .expect(&format!("Failed to execute request {:?}", path))
     }
 
     fn parse_headers(headers: &[Header]) -> HeaderMap {
@@ -41,7 +46,7 @@ impl Client {
         for header in headers {
             let (name, value): (&str, String) = header.clone().into();
             map.insert(name, HeaderValue::from_str(&value).unwrap());
-        };
+        }
         map
     }
 }

@@ -6,7 +6,13 @@ pub enum HandleValidationErr {
     HandleContainsForbiddenChars(char),
 }
 
-pub const ALLOWED_HANDLE_CHARS: &[char] =  &['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '#', '$', '%', '&', '*', '+', ',', '-', '.', ':', ';', '=', '?', '@', '[', ']', '^', '_', '`', '|', '~'];
+pub const ALLOWED_HANDLE_CHARS: &[char] = &[
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
+    't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4',
+    '5', '6', '7', '8', '9', '!', '#', '$', '%', '&', '*', '+', ',', '-', '.', ':', ';', '=', '?',
+    '@', '[', ']', '^', '_', '`', '|', '~',
+];
 
 #[derive(Debug, Clone)]
 pub struct Handle(String);
@@ -15,21 +21,21 @@ impl Handle {
     pub fn parse(handle: String) -> Result<Self, HandleValidationErr> {
         let mut forbidden_character: Option<char> = None;
         if handle.trim().is_empty() {
-            return Err(HandleValidationErr::HandleEmpty)
+            return Err(HandleValidationErr::HandleEmpty);
         } else if handle.len() > 20 {
-            return Err(HandleValidationErr::HandleTooLong)
-        } else if handle
-                .chars()
-                .any(|c| {
-                    let contains_forbidden = !ALLOWED_HANDLE_CHARS.contains(&c);
+            return Err(HandleValidationErr::HandleTooLong);
+        } else if handle.chars().any(|c| {
+            let contains_forbidden = !ALLOWED_HANDLE_CHARS.contains(&c);
 
-                    if contains_forbidden {
-                        forbidden_character = Some(c);
-                    }
+            if contains_forbidden {
+                forbidden_character = Some(c);
+            }
 
-                    contains_forbidden
-                }) {
-            return Err(HandleValidationErr::HandleContainsForbiddenChars(forbidden_character.unwrap()))
+            contains_forbidden
+        }) {
+            return Err(HandleValidationErr::HandleContainsForbiddenChars(
+                forbidden_character.unwrap(),
+            ));
         }
         Ok(Handle(handle))
     }
@@ -47,13 +53,10 @@ impl AsRef<str> for Handle {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        domain::user::*,
-        utils::test::HANDLE_GENERATOR,
-    };
+    use crate::{domain::user::*, utils::test::HANDLE_GENERATOR};
     use claim::{assert_err, assert_ok};
 
-    #[derive(Clone,Debug)]
+    #[derive(Clone, Debug)]
     struct ValidHandleFixture(pub String);
 
     impl quickcheck::Arbitrary for ValidHandleFixture {
@@ -98,7 +101,7 @@ mod tests {
             assert_err!(Handle::parse(handle.to_string()));
         }
     }
-    
+
     #[test]
     fn empty_string_handle_rejected() {
         assert_err!(Handle::parse("".to_string()));

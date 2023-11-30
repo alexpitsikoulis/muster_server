@@ -1,6 +1,6 @@
-use secrecy::{Secret, ExposeSecret};
-use sqlx::{Error, PgPool};
 use crate::domain::confirmation_token::ConfirmationToken;
+use secrecy::{ExposeSecret, Secret};
+use sqlx::{Error, PgPool};
 
 #[tracing::instrument(
     name = "Inserting confirmation_token to database",
@@ -21,15 +21,22 @@ pub async fn insert_confirmation_token(
         confirmation_token.expose(),
         confirmation_token.user_id(),
     )
-        .execute(db_pool)
-        .await
-        .map(|_| {
-            tracing::info!("INSERT confirmation_token for user {} successful", confirmation_token.user_id());
-        })
-        .map_err(|e| {
-            tracing::info!("INSERT confirmation_token for user {} failed: {:?}", confirmation_token.user_id(), e);
+    .execute(db_pool)
+    .await
+    .map(|_| {
+        tracing::info!(
+            "INSERT confirmation_token for user {} successful",
+            confirmation_token.user_id()
+        );
+    })
+    .map_err(|e| {
+        tracing::info!(
+            "INSERT confirmation_token for user {} failed: {:?}",
+            confirmation_token.user_id(),
             e
-        })
+        );
+        e
+    })
 }
 
 #[tracing::instrument(
@@ -50,26 +57,20 @@ pub async fn get_confirmation_token(
         "#,
         confirmation_token,
     )
-        .fetch_one(db_pool)
-        .await
-        .map(|t| {
-            tracing::info!("GET confirmation_token successful");
-            ConfirmationToken::new(Secret::new(t.confirmation_token), t.user_id)
-        })
-        .map_err(|e| {
-            tracing::error!("GET confirmation_token failed: {:?}", e);
-            e
-        })
+    .fetch_one(db_pool)
+    .await
+    .map(|t| {
+        tracing::info!("GET confirmation_token successful");
+        ConfirmationToken::new(Secret::new(t.confirmation_token), t.user_id)
+    })
+    .map_err(|e| {
+        tracing::error!("GET confirmation_token failed: {:?}", e);
+        e
+    })
 }
 
-#[tracing::instrument(
-    name = "Deleting confirmation token",
-    skip(token, db_pool),
-)]
-pub async fn delete(
-    db_pool: &PgPool,
-    token: &ConfirmationToken,
-) -> Result<(), Error> {
+#[tracing::instrument(name = "Deleting confirmation token", skip(token, db_pool))]
+pub async fn delete(db_pool: &PgPool, token: &ConfirmationToken) -> Result<(), Error> {
     sqlx::query!(
         r#"
         DELETE FROM confirmation_tokens
@@ -83,10 +84,17 @@ pub async fn delete(
     .execute(db_pool)
     .await
     .map(|_| {
-        tracing::info!("DELETE confirmation token {} for user {} successful", token.confirmation_token().expose_secret(), token.user_id());
+        tracing::info!(
+            "DELETE confirmation token {} for user {} successful",
+            token.confirmation_token().expose_secret(),
+            token.user_id()
+        );
     })
     .map_err(|e| {
-        tracing::error!("DELETE confirmation token for user {} failed", token.user_id());
+        tracing::error!(
+            "DELETE confirmation token for user {} failed",
+            token.user_id()
+        );
         e
     })
 }

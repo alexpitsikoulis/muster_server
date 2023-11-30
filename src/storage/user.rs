@@ -1,14 +1,11 @@
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
-use crate::domain::user::{User, Email, Handle};
+use crate::domain::user::{Email, Handle, User};
 
 pub const USERS_TABLE_NAME: &str = "users";
 
-#[tracing::instrument(
-    name = "Upserting user details to database",
-    skip(user, db_pool),
-)]
+#[tracing::instrument(name = "Upserting user details to database", skip(user, db_pool))]
 pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
     sqlx::query!(
         r#"
@@ -63,17 +60,25 @@ pub async fn confirm_user_email(db_pool: &PgPool, user_id: Uuid) -> Result<(), E
             email_confirmed = true
         WHERE
             id = $1
-        "#, user_id,
+        "#,
+        user_id,
     )
-        .execute(db_pool)
-        .await
-        .map(|_| {
-            tracing::info!("UPDATE user {} SET email_confirmed TRUE successful", user_id);
-        })
-        .map_err(|e| {
-            tracing::error!("UDPATE user {} SET email_confirmed TRUE failed: {:?}", user_id, e);
+    .execute(db_pool)
+    .await
+    .map(|_| {
+        tracing::info!(
+            "UPDATE user {} SET email_confirmed TRUE successful",
+            user_id
+        );
+    })
+    .map_err(|e| {
+        tracing::error!(
+            "UDPATE user {} SET email_confirmed TRUE failed: {:?}",
+            user_id,
             e
-        })
+        );
+        e
+    })
 }
 
 #[tracing::instrument(

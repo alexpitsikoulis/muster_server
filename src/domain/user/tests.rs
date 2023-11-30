@@ -1,19 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use claim::{assert_err, assert_ok};
-    use fake::{
-        Fake,
-        faker::internet::en::SafeEmail,
-    };
     use crate::{
-        utils::test::{PASSWORD_GENERATOR, HANDLE_GENERATOR},
-        domain::user::{email::Email, Password, Handle},
+        domain::user::{email::Email, Handle, Password},
+        utils::test::{HANDLE_GENERATOR, PASSWORD_GENERATOR},
     };
+    use claim::{assert_err, assert_ok};
+    use fake::{faker::internet::en::SafeEmail, Fake};
     use secrecy::Secret;
-    
+
     #[derive(Clone, Debug)]
     struct ValidEmailFixture(pub String);
-    
+
     impl quickcheck::Arbitrary for ValidEmailFixture {
         fn arbitrary(_g: &mut quickcheck::Gen) -> Self {
             let email = SafeEmail().fake();
@@ -36,7 +33,7 @@ mod tests {
             assert_err!(Email::parse(email.to_string()));
         }
     }
-    
+
     #[quickcheck_macros::quickcheck]
     fn valid_email_parsed_successfully(email: ValidEmailFixture) -> bool {
         Email::parse(email.0).is_ok()
@@ -94,7 +91,7 @@ mod tests {
         Password::parse(password.0).is_ok()
     }
 
-    #[derive(Clone,Debug)]
+    #[derive(Clone, Debug)]
     struct ValidHandleFixture(pub String);
 
     impl quickcheck::Arbitrary for ValidHandleFixture {
@@ -139,7 +136,7 @@ mod tests {
             assert_err!(Handle::parse(handle.to_string()));
         }
     }
-    
+
     #[test]
     fn empty_string_handle_rejected() {
         assert_err!(Handle::parse("".to_string()));

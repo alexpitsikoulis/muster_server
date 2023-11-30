@@ -1,4 +1,4 @@
-use muttr_server::consts::headers::{AUTHORIZATION, CONTENT_TYPE, FORM_URL_ENCODED, APP_JSON};
+use muttr_server::consts::headers::{APP_JSON, AUTHORIZATION, CONTENT_TYPE, FORM_URL_ENCODED};
 
 #[derive(Clone)]
 pub enum Header {
@@ -26,6 +26,7 @@ impl ToString for ContentType {
         match self {
             ContentType::FormURLEncoded => FORM_URL_ENCODED,
             ContentType::Json => APP_JSON,
-        }.into()
+        }
+        .into()
     }
 }

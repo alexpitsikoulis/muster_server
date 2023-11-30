@@ -1,8 +1,8 @@
-mod tests;
 mod confirmation_email;
+mod tests;
 
-use crate::domain::user;
 use super::Email;
+use crate::domain::user;
 
 #[derive(Debug)]
 pub struct Client {
@@ -29,7 +29,13 @@ impl Client {
     ) -> Result<(), reqwest::Error> {
         self.http_client
             .post(format!("{}/send", self.base_url))
-            .json(&Email::new(self.sender.clone(), recipient, subject, html_content, text_content))
+            .json(&Email::new(
+                self.sender.clone(),
+                recipient,
+                subject,
+                html_content,
+                text_content,
+            ))
             .send()
             .await?;
         Ok(())

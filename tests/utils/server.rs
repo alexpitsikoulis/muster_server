@@ -4,7 +4,8 @@ pub fn generate_create_body(
     photo: Option<&str>,
     cover_photo: Option<&str>,
 ) -> String {
-    format!(r#"
+    format!(
+        r#"
     {{
         "name": "{}",
         "description": {},

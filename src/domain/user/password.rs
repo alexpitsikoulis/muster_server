@@ -1,8 +1,11 @@
-use rand::RngCore;
 use argon2::{self, Config};
-use secrecy::{Secret, ExposeSecret};
+use rand::RngCore;
+use secrecy::{ExposeSecret, Secret};
 
-pub const ALLOWED_PASSWORD_CHARS: &[char] = &[' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~'];
+pub const ALLOWED_PASSWORD_CHARS: &[char] = &[
+    ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<',
+    '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~',
+];
 
 #[derive(Debug)]
 pub enum PasswordValidationErr {
@@ -28,14 +31,14 @@ impl Password {
                     rng.fill_bytes(&mut unencoded);
                     unencoded
                 };
-            
+
                 let config = Config::original();
-                
+
                 match argon2::hash_encoded(password.expose_secret().as_bytes(), &salt, &config) {
                     Ok(hash) => Ok(Self(hash)),
                     Err(e) => Err(PasswordValidationErr::ArgonErr(e)),
                 }
-            },
+            }
             Err(e) => Err(e),
         }
     }
@@ -44,16 +47,16 @@ impl Password {
         if password.expose_secret().len() < 8 {
             return Err(PasswordValidationErr::PwdTooShort);
         }
-    
+
         if password.expose_secret().len() > 64 {
-           return Err(PasswordValidationErr::PwdTooLong);
+            return Err(PasswordValidationErr::PwdTooLong);
         }
-    
+
         let mut has_lower = false;
         let mut has_upper = false;
         let mut has_number = false;
         let mut has_char = false;
-    
+
         for c in password.expose_secret().chars().into_iter() {
             if has_lower && has_upper && has_number && has_char {
                 break;
@@ -74,8 +77,8 @@ impl Password {
                 has_char = true;
                 continue;
             }
-        };
-    
+        }
+
         if !has_lower {
             return Err(PasswordValidationErr::PwdMissingLowercase);
         }
@@ -88,7 +91,7 @@ impl Password {
         if !has_char {
             return Err(PasswordValidationErr::PwdMissingChar);
         }
-    
+
         Result::Ok(())
     }
 
@@ -105,10 +108,7 @@ impl AsRef<str> for Password {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        domain::user::Password,
-        utils::test::PASSWORD_GENERATOR,
-    };
+    use crate::{domain::user::Password, utils::test::PASSWORD_GENERATOR};
     use claim::assert_err;
     use secrecy::Secret;
 

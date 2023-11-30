@@ -21,7 +21,7 @@ impl Email {
     ) -> Self {
         let sender = sender.as_ref().to_string();
         let recipient = recipient.as_ref().to_string();
-        Email { 
+        Email {
             sender: sender,
             recipient: recipient,
             subject: subject,
@@ -39,10 +39,7 @@ impl Email {
                     "body": "{}"
                 }}
             "#,
-            self.sender,
-            self.recipient,
-            self.subject,
-            self.body,
+            self.sender, self.recipient, self.subject, self.body,
         )
     }
 }

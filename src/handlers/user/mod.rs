@@ -1,7 +1,7 @@
-mod signup;
 mod confirm;
 mod login;
+mod signup;
 
-pub use signup::*;
 pub use confirm::*;
 pub use login::*;
+pub use signup::*;

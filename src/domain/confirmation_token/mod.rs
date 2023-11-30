@@ -1,6 +1,6 @@
 mod tests;
 
-use secrecy::{Secret, ExposeSecret};
+use secrecy::{ExposeSecret, Secret};
 use uuid::Uuid;
 
 pub struct ConfirmationToken {
@@ -10,7 +10,10 @@ pub struct ConfirmationToken {
 
 impl ConfirmationToken {
     pub fn new(confirmation_token: Secret<String>, user_id: Uuid) -> Self {
-        ConfirmationToken { confirmation_token, user_id }
+        ConfirmationToken {
+            confirmation_token,
+            user_id,
+        }
     }
 
     pub fn expose(&self) -> String {

@@ -1,17 +1,17 @@
 mod email;
 mod handle;
-mod password;
 mod login;
+mod password;
 mod tests;
 
 use actix_web::{web::Form, HttpResponse};
-pub use handle::*;
-pub use password::*;
 pub use email::*;
+pub use handle::*;
 pub use login::*;
+pub use password::*;
 
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 use crate::handlers::user::SignupFormData;
 
@@ -157,7 +157,7 @@ impl User {
             Ok(email) => {
                 self.email = email;
                 Ok(())
-            },
+            }
             Err(e) => {
                 tracing::error!("User email {} is invalid: {:?}", email, e);
                 Err(e)
@@ -174,7 +174,7 @@ impl User {
             Ok(handle) => {
                 self.handle = handle;
                 Ok(())
-            },
+            }
             Err(e) => {
                 tracing::error!("User handle {} is invalid: {:?}", handle, e);
                 Err(e)

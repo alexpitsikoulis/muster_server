@@ -1,19 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use crate::domain::{
-        user,
-        email::Client,
-    };
+    use crate::domain::{email::Client, user};
     use fake::{
-        Fake,
         faker::{
             internet::en::SafeEmail,
             lorem::en::{Paragraph, Sentence},
         },
+        Fake,
     };
     use wiremock::{
+        matchers::{header, method, path},
         Mock, MockServer, ResponseTemplate,
-        matchers::{path, header, method},
     };
     #[tokio::test]
     async fn send_email_sends_request_to_base_url() {
