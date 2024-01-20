@@ -1,6 +1,4 @@
-use std::fmt::Display;
-
-use crate::domain::server::{AsServer, Server};
+use crate::domain::server::Server;
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
@@ -13,10 +11,7 @@ pub const SERVERS_TABLE_NAME: &str = "servers";
         server_data = %server,
     )
 )]
-pub async fn upsert_server<S>(db_pool: &PgPool, server: &S) -> Result<(), Error>
-where
-    S: AsServer + Display + std::fmt::Debug,
-{
+pub async fn upsert_server(db_pool: &PgPool, server: &Server) -> Result<(), Error> {
     sqlx::query!(
         r#"
         INSERT INTO servers (id, name, owner_id, description, photo, cover_photo, created_at, updated_at, deleted_at)
@@ -24,13 +19,13 @@ where
         ON CONFLICT (id)
         DO
             UPDATE SET
-                name = COALESCE($10, servers.name),
-                owner_id = COALESCE($11, servers.owner_id),
-                description = COALESCE(EXCLUDED.description, servers.description),
-                photo = COALESCE(EXCLUDED.photo, servers.photo),
-                cover_photo = COALESCE(EXCLUDED.cover_photo, servers.cover_photo),
+                name = EXCLUDED.name,
+                owner_id = EXCLUDED.owner_id,
+                description = EXCLUDED.description,
+                photo = EXCLUDED.photo,
+                cover_photo = EXCLUDED.cover_photo,
                 updated_at = now(),
-                deleted_at = COALESCE(EXCLUDED.deleted_at, servers.deleted_at)
+                deleted_at = EXCLUDED.deleted_at
         WHERE
             (servers.name, servers.owner_id, servers.description, servers.photo, servers.cover_photo, servers.deleted_at) IS DISTINCT FROM
             (EXCLUDED.name, EXCLUDED.owner_id, EXCLUDED.description, EXCLUDED.photo, EXCLUDED.cover_photo, EXCLUDED.deleted_at);
@@ -45,14 +40,6 @@ where
         server.created_at(),
         server.updated_at(),
         server.deleted_at(),
-        match server.name() == String::new() {
-            true => None,
-            false => Some(server.name()),
-        },
-        match server.owner_id() == Uuid::nil() {
-            true => None,
-            false => Some(server.owner_id()),
-        },
     )
     .execute(db_pool)
     .await

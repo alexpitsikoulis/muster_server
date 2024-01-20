@@ -1,25 +1,14 @@
-mod update;
+mod request;
+use serde::{Deserialize, Serialize};
 
-pub use update::*;
-
-use crate::handlers::server::CreateServerRequestDataWithOwner;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-pub trait AsServer {
-    fn id(&self) -> Uuid;
-    fn name(&self) -> String;
-    fn owner_id(&self) -> Uuid;
-    fn description(&self) -> Option<String>;
-    fn photo(&self) -> Option<String>;
-    fn cover_photo(&self) -> Option<String>;
-    fn created_at(&self) -> DateTime<Utc>;
-    fn updated_at(&self) -> DateTime<Utc>;
-    fn deleted_at(&self) -> Option<DateTime<Utc>>;
-}
+use crate::handlers::server::CreateServerRequestData;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Server {
+    #[serde(default)]
     id: Uuid,
     name: String,
     owner_id: Uuid,
@@ -38,6 +27,7 @@ impl std::fmt::Display for Server {
 }
 
 impl Server {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         name: String,
@@ -61,6 +51,46 @@ impl Server {
             deleted_at,
         }
     }
+
+    pub fn from_create_request(body: CreateServerRequestData, owner_id: Uuid) -> Self {
+        let now = Utc::now();
+        Server {
+            id: Uuid::new_v4(),
+            name: body.name,
+            owner_id,
+            description: body.description,
+            photo: body.photo,
+            cover_photo: body.cover_photo,
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn owner_id(&self) -> Uuid {
+        self.owner_id
+    }
+
+    pub fn description(&self) -> Option<String> {
+        self.description.clone()
+    }
+
+    pub fn photo(&self) -> Option<String> {
+        self.photo.clone()
+    }
+
+    pub fn cover_photo(&self) -> Option<String> {
+        self.cover_photo.clone()
+    }
+
     pub fn created_at(&self) -> DateTime<Utc> {
         self.created_at
     }
@@ -71,6 +101,10 @@ impl Server {
 
     pub fn deleted_at(&self) -> Option<DateTime<Utc>> {
         self.deleted_at
+    }
+
+    pub fn set_id(&mut self, id: Uuid) {
+        self.id = id;
     }
 
     pub fn set_name(&mut self, name: String) {
@@ -99,60 +133,5 @@ impl Server {
 
     pub fn set_deleted_at(&mut self, deleted_at: Option<DateTime<Utc>>) {
         self.deleted_at = deleted_at
-    }
-}
-
-impl AsServer for Server {
-    fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn owner_id(&self) -> Uuid {
-        self.owner_id
-    }
-
-    fn description(&self) -> Option<String> {
-        self.description.clone()
-    }
-
-    fn photo(&self) -> Option<String> {
-        self.photo.clone()
-    }
-
-    fn cover_photo(&self) -> Option<String> {
-        self.cover_photo.clone()
-    }
-
-    fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    fn updated_at(&self) -> DateTime<Utc> {
-        self.updated_at
-    }
-
-    fn deleted_at(&self) -> Option<DateTime<Utc>> {
-        self.deleted_at
-    }
-}
-
-impl From<CreateServerRequestDataWithOwner> for Server {
-    fn from(val: CreateServerRequestDataWithOwner) -> Self {
-        let now = Utc::now();
-        Server::new(
-            Uuid::new_v4(),
-            val.data.name.clone(),
-            val.owner_id,
-            val.data.description.clone(),
-            val.data.photo.clone(),
-            val.data.cover_photo.clone(),
-            now,
-            now,
-            None,
-        )
     }
 }

@@ -66,6 +66,7 @@ pub struct User {
 }
 
 impl User {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         email: Email,

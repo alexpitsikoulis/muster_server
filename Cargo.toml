@@ -17,8 +17,8 @@ actix-web = "4.4.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 serde = { version = "1", features = ["derive"] }
 config = "0.13.3"
-chrono = "0.4.31"
-uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4.31", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 rust-argon2 = "2.0"
 rand = "0.8.5"
 time = "0.3.30"
@@ -34,12 +34,10 @@ futures = "0.3.28"
 futures-timer = "3.0.2"
 secrecy = { version = "0.8", features = ["serde"] }
 tracing-actix-web = "0.7.8"
-unicode-segmentation = "1.10.1"
 regex = "1.10.2"
 claim = "0.5.0"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
-lettre = { version = "0.10.0-beta.2", default-features = false, features = ["smtp-transport", "tokio1-rustls-tls", "hostname", "r2d2", "builder"] }
 
 [dependencies.sqlx]
 version = "0.6"

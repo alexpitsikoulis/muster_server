@@ -1,9 +1,15 @@
 use crate::utils::{
     app::TestApp,
     http_client::{ContentType, Header, Path},
-    server::generate_create_body,
 };
-use muttr_server::{handlers::server::BASE_PATH, utils::jwt::generate_token};
+use chrono::Utc;
+use muttr_server::{
+    domain::server::Server,
+    handlers::server::{CreateServerRequestData, BASE_PATH},
+    utils::jwt::generate_token,
+};
+use serde_json::to_string;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_create_server_success() {
@@ -18,38 +24,26 @@ async fn test_create_server_success() {
 
     let test_cases = vec![
         (
-            "TestServer",
-            Some("Just a test server"),
-            Some("photo base64"),
-            Some("cover_photo base64"),
+            CreateServerRequestData {
+                name: String::from("TestServer"),
+                description: Some(String::from("Just a test server")),
+                photo: Some(String::from("photo base64")),
+                cover_photo: Some(String::from("cover_photo base64")),
+            },
             "has all fields",
         ),
         (
-            "Test Server 2",
-            Some("Just a test server"),
-            None,
-            None,
-            "has name and description",
+            CreateServerRequestData {
+                name: String::from("TestServer"),
+                description: None,
+                photo: None,
+                cover_photo: None,
+            },
+            "has only required fields",
         ),
-        (
-            "Test Server 3",
-            None,
-            Some("photo base64"),
-            None,
-            "has name and photo",
-        ),
-        (
-            "Test Server 4",
-            None,
-            None,
-            Some("cover_photo base64"),
-            "has name and cover photo",
-        ),
-        ("Test Server 5", None, None, None, "only has name"),
     ];
 
-    for (name, description, photo, cover_photo, error_message) in test_cases {
-        let body = generate_create_body(name, description, photo, cover_photo);
+    for (body, error_case) in test_cases {
         let response = app
             .client
             .request(
@@ -58,7 +52,7 @@ async fn test_create_server_success() {
                     Header::ContentType(ContentType::Json),
                     Header::Authorization(token.clone()),
                 ],
-                Some(body),
+                Some(to_string(&body).unwrap()),
             )
             .await;
 
@@ -66,7 +60,47 @@ async fn test_create_server_success() {
             200,
             response.status(),
             "The API did not return 200 when creating server that {}",
-            error_message,
+            error_case,
+        );
+
+        let id = Uuid::parse_str(&response.text().await.expect("response body was empty"))
+            .expect("response was not a valid UUID");
+
+        let server = app.database.get_server_by_id(id).await;
+
+        assert_eq!(
+            body.name,
+            server.name(),
+            "The server was not created in the database when {}",
+            error_case,
+        );
+
+        assert_eq!(
+            user.id(),
+            server.owner_id(),
+            "The server was not created in the database when {}",
+            error_case,
+        );
+
+        assert_eq!(
+            body.description,
+            server.description(),
+            "The server was not created in the database when {}",
+            error_case,
+        );
+
+        assert_eq!(
+            body.photo,
+            server.photo(),
+            "The server was not created in the database when {}",
+            error_case,
+        );
+
+        assert_eq!(
+            body.cover_photo,
+            server.cover_photo(),
+            "The server was not created in the database when {}",
+            error_case,
         );
     }
 }

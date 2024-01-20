@@ -1,65 +1,36 @@
-use std::str::FromStr;
-
 use actix_web::{
-    web::{Data, Json},
-    HttpRequest, HttpResponse,
+    web::{Data, Json, Path},
+    HttpResponse,
 };
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{domain::server::ServerUpdate, storage::upsert_server};
-
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
-pub struct UpdateServerRequestData {
-    pub name: Option<String>,
-    pub owner_id: Option<String>,
-    pub description: Option<String>,
-    pub photo: Option<String>,
-    pub cover_photo: Option<String>,
-}
+use crate::{domain::server::Server, storage::upsert_server};
 
 #[tracing::instrument(
     name = "Updating server details",
-    skip(req, server_details, db_pool),
+    skip(server_details, db_pool),
     fields(
-        name = %server_details.clone().name.unwrap_or_default(),
-        owner_id = %server_details.clone().owner_id.unwrap_or_default(),
-        description = %server_details.clone().description.unwrap_or_default(),
-        photo = %server_details.clone().photo.unwrap_or_default(),
-        cover_photo = %server_details.clone().cover_photo.unwrap_or_default(),
+        id = %server_details.clone().id(),
+        name = %server_details.clone().name(),
+        owner_id = %server_details.clone().owner_id(),
+        description = %server_details.clone().description().unwrap_or_default(),
+        photo = %server_details.clone().photo().unwrap_or_default(),
+        cover_photo = %server_details.clone().cover_photo().unwrap_or_default(),
     )
 )]
 pub async fn update(
-    req: HttpRequest,
-    server_details: Json<UpdateServerRequestData>,
+    server_id: Path<Uuid>,
+    mut server_details: Json<Server>,
     db_pool: Data<PgPool>,
 ) -> HttpResponse {
-    match req.match_info().get("server_id") {
-        Some(server_id) => {
-            match Uuid::from_str(server_id) {
-                Ok(server_id) => {
-                    match ServerUpdate::from_request(&server_details, server_id) {
-                        Ok(server_update) => {
-                            match upsert_server(db_pool.get_ref(), &server_update).await {
-                                Ok(()) => HttpResponse::Ok().finish(),
-                                Err(e) => match e {
-                                    sqlx::Error::RowNotFound => HttpResponse::NotFound().body("Server not found"),
-                                    _ => HttpResponse::InternalServerError().finish(),
-                                }
-                            }
-                        },
-                        Err(e) => {
-                            tracing::error!("Failed to parse owner_id '{}' into UUID: {:?}", server_details.clone().owner_id.unwrap(), e);
-                            HttpResponse::BadRequest().body("Provided owner_id is invalid, please provide a valid UUID")
-                        }
-                    }
-                },
-                Err(e) => {
-                    tracing::error!("Invalud URL parameter '{}' for server_id provided: {:?}", server_id, e);
-                    HttpResponse::BadRequest().body("URL parameter for server_id is incorrect, please provide a valid UUID")
-                },
-            }
+    let id = server_id.into_inner();
+    server_details.set_id(id);
+    match upsert_server(db_pool.get_ref(), &server_details).await {
+        Ok(()) => HttpResponse::Ok().finish(),
+        Err(e) => match e {
+            sqlx::Error::RowNotFound => HttpResponse::NotFound().body("Server not found"),
+            _ => HttpResponse::InternalServerError().finish(),
         },
-        None => HttpResponse::BadRequest().body("No URL parameter for server_id was provided. Request URL should be '/servers/update/{server_id}'"),
     }
 }
