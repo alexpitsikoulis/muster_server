@@ -3,7 +3,8 @@ use crate::utils::{
     http_client::{ContentType, Header, Path},
 };
 use muttr_server::{
-    domain::user::Password, handlers::user::SIGNUP_PATH, storage::USERS_TABLE_NAME,
+    handlers::user::SIGNUP_PATH,
+    storage::{get_user_by_email, USERS_TABLE_NAME},
 };
 use secrecy::Secret;
 use wiremock::{
@@ -36,27 +37,24 @@ async fn test_signup_success() {
     assert_eq!(
         200,
         response.status().as_u16(),
-        "The API did not return 200 when signing up with valid login details: {:?}",
-        response.text().await.unwrap(),
+        "The API did not return 200 when signing up with valid login details",
     );
 
-    match sqlx::query!(
-        "SELECT handle, email, password FROM users WHERE email = 'alex.pitsikoulis@youwish.com'",
-    )
-    .fetch_one(&app.database.db_pool)
-    .await
-    {
+    match get_user_by_email(&app.database.db_pool, "alex.pitsikoulis@youwish.com").await {
         Ok(user) => {
             assert_eq!(
-                "alex.pitsikoulis", user.handle,
+                "alex.pitsikoulis",
+                user.handle().as_ref(),
                 "Inserted handle does not match the one provided in the request",
             );
             assert_eq!(
-                "alex.pitsikoulis@youwish.com", user.email,
+                "alex.pitsikoulis@youwish.com",
+                user.email().as_ref(),
                 "Inserted email does not match the one provided in the request",
             );
             assert!(
-                Password::compare(Secret::new("N0neofyourbus!ness".into()), user.password),
+                user.password()
+                    .compare(&Secret::new("N0neofyourbus!ness".into())),
                 "Inserted password does not match the one provided in the request",
             );
         }

@@ -1,6 +1,6 @@
 use crate::domain::confirmation_token::ConfirmationToken;
-use secrecy::{ExposeSecret, Secret};
-use sqlx::{Error, PgPool};
+use secrecy::Secret;
+use sqlx::{postgres::PgQueryResult, query, Error, PgPool};
 
 #[tracing::instrument(
     name = "Inserting confirmation_token to database",
@@ -12,31 +12,17 @@ use sqlx::{Error, PgPool};
 pub async fn insert_confirmation_token(
     db_pool: &PgPool,
     confirmation_token: &ConfirmationToken,
-) -> Result<(), Error> {
-    sqlx::query!(
+) -> Result<PgQueryResult, Error> {
+    query(
         r#"
         INSERT INTO confirmation_tokens (confirmation_token, user_id)
         VALUES ($1, $2);
         "#,
-        confirmation_token.expose(),
-        confirmation_token.user_id(),
     )
+    .bind(confirmation_token.expose())
+    .bind(confirmation_token.user_id())
     .execute(db_pool)
     .await
-    .map(|_| {
-        tracing::info!(
-            "INSERT confirmation_token for user {} successful",
-            confirmation_token.user_id()
-        );
-    })
-    .map_err(|e| {
-        tracing::info!(
-            "INSERT confirmation_token for user {} failed: {:?}",
-            confirmation_token.user_id(),
-            e
-        );
-        e
-    })
 }
 
 #[tracing::instrument(
@@ -78,7 +64,7 @@ pub async fn delete(db_pool: &PgPool, token: &ConfirmationToken) -> Result<(), E
             confirmation_token = $1 AND
             user_id = $2;
         "#,
-        token.confirmation_token().expose_secret(),
+        token.expose(),
         token.user_id(),
     )
     .execute(db_pool)
@@ -86,7 +72,7 @@ pub async fn delete(db_pool: &PgPool, token: &ConfirmationToken) -> Result<(), E
     .map(|_| {
         tracing::info!(
             "DELETE confirmation token {} for user {} successful",
-            token.confirmation_token().expose_secret(),
+            token.expose(),
             token.user_id()
         );
     })

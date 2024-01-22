@@ -6,7 +6,7 @@ use muttr_server::{
 use secrecy::Secret;
 use uuid::Uuid;
 
-pub const TEST_USER_PASSWORD: &str = "Testpassw0rd!";
+pub const TEST_USER_PASSWORD: &str = "Testp@ssw0rd!";
 
 use super::TestDB;
 

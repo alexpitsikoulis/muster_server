@@ -86,11 +86,11 @@ async fn test_login_failure_on_invalid_credentials() {
             "the handle is found but the password is incorrect",
         ),
         (
-            "login=someotheremail%40test.com&password=Testpassw0rd1".to_string(),
+            "login=someotheremail%40test.com&password=Testp@ssw0rd1".to_string(),
             "the email is not found",
         ),
         (
-            "login=someotheruser&password=Testpassw0rd1".to_string(),
+            "login=someotheruser&password=Testp@ssw0rd1".to_string(),
             "the handle is not found",
         ),
     ];

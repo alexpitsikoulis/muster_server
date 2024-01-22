@@ -4,9 +4,7 @@ use chrono::{DateTime, Utc};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
-use crate::handlers::server::CreateServerRequestData;
-
-#[derive(Serialize, Deserialize, FromRow, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
 pub struct Server {
     #[serde(default)]
     id: Uuid,
@@ -15,12 +13,20 @@ pub struct Server {
     description: Option<String>,
     photo: Option<String>,
     cover_photo: Option<String>,
-    #[serde(skip_deserializing)]
     created_at: DateTime<Utc>,
-    #[serde(skip_deserializing)]
     updated_at: DateTime<Utc>,
-    #[serde(skip_deserializing)]
     deleted_at: Option<DateTime<Utc>>,
+}
+
+impl PartialEq for Server {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.name == other.name
+            && self.owner_id == other.owner_id
+            && self.description == other.description
+            && self.photo == other.photo
+            && self.cover_photo == other.cover_photo
+    }
 }
 
 impl std::fmt::Display for Server {
@@ -52,21 +58,6 @@ impl Server {
             created_at,
             updated_at,
             deleted_at,
-        }
-    }
-
-    pub fn from_create_request(body: CreateServerRequestData, owner_id: Uuid) -> Self {
-        let now = Utc::now();
-        Server {
-            id: Uuid::new_v4(),
-            name: body.name,
-            owner_id,
-            description: body.description,
-            photo: body.photo,
-            cover_photo: body.cover_photo,
-            created_at: now,
-            updated_at: now,
-            deleted_at: None,
         }
     }
 

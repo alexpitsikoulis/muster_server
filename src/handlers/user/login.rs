@@ -3,19 +3,20 @@ use actix_web::{
     HttpResponse,
 };
 use secrecy::Secret;
+use serde::Deserialize;
 use sqlx::PgPool;
 
 use crate::{
-    domain::user::{Login, LoginData, Password},
+    domain::user::Login,
     storage::{get_user_by_email, get_user_by_handle, upsert_user},
     utils::jwt::generate_token,
 };
 
 pub const LOGIN_PATH: &str = "/users/login";
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct LoginForm {
-    pub login: String,
+    pub login: Login,
     pub password: Secret<String>,
 }
 
@@ -27,16 +28,9 @@ pub struct LoginForm {
     )
 )]
 pub async fn login(form: Form<LoginForm>, db_pool: Data<PgPool>) -> HttpResponse {
-    let login_data = match LoginData::try_from(form) {
-        Ok(l) => l,
-        Err(e) => {
-            tracing::error!("Failed to parse login details");
-            return HttpResponse::BadRequest().body(e);
-        }
-    };
-    let query_result = match login_data.login {
-        Login::Email(e) => get_user_by_email(db_pool.get_ref(), e).await,
-        Login::Handle(h) => get_user_by_handle(db_pool.get_ref(), h).await,
+    let query_result = match &form.login {
+        Login::Email(e) => get_user_by_email(db_pool.get_ref(), e.as_ref()).await,
+        Login::Handle(h) => get_user_by_handle(db_pool.get_ref(), h.as_ref()).await,
     };
     match query_result {
         Ok(mut user) => {
@@ -47,8 +41,7 @@ pub async fn login(form: Form<LoginForm>, db_pool: Data<PgPool>) -> HttpResponse
                 return HttpResponse::Forbidden()
                     .body("Account is locked due to too many failed login attempts");
             };
-            let login_successful =
-                Password::compare(login_data.password.clone(), user.password().to_string());
+            let login_successful = user.password().compare(&form.password);
             if login_successful {
                 if user.failed_attempts() > 0 {
                     if let Err(e) = upsert_user(db_pool.get_ref(), &user).await {

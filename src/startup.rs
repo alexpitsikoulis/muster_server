@@ -8,7 +8,7 @@ use crate::{
 };
 use actix_web::{
     dev::Server,
-    web::{get, post, put, Data},
+    web::{get, patch, post, put, Data},
     HttpServer,
 };
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -63,6 +63,10 @@ impl App {
                 .route(
                     &format!("{}/{{user_id}}", user::BASE_PATH),
                     put().to(user::update),
+                )
+                .route(
+                    &format!("{}/{{user_id}}", user::BASE_PATH),
+                    patch().to(user::patch),
                 )
                 .route(user::SIGNUP_PATH, post().to(user::signup))
                 .route(user::LOGIN_PATH, post().to(user::login))

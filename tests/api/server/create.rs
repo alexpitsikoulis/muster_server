@@ -4,9 +4,7 @@ use crate::utils::{
 };
 use chrono::Utc;
 use muttr_server::{
-    domain::server::Server,
-    handlers::server::{CreateServerRequestData, BASE_PATH},
-    utils::jwt::generate_token,
+    domain::server::Server, handlers::server::BASE_PATH, utils::jwt::generate_token,
 };
 use serde_json::to_string;
 use uuid::Uuid;
@@ -24,21 +22,31 @@ async fn test_create_server_success() {
 
     let test_cases = vec![
         (
-            CreateServerRequestData {
-                name: String::from("TestServer"),
-                description: Some(String::from("Just a test server")),
-                photo: Some(String::from("photo base64")),
-                cover_photo: Some(String::from("cover_photo base64")),
-            },
+            Server::new(
+                Uuid::new_v4(),
+                String::from("TestServer"),
+                user.id(),
+                Some(String::from("Just a test server")),
+                Some(String::from("photo base64")),
+                Some(String::from("cover_photo base64")),
+                Utc::now(),
+                Utc::now(),
+                None,
+            ),
             "has all fields",
         ),
         (
-            CreateServerRequestData {
-                name: String::from("TestServer"),
-                description: None,
-                photo: None,
-                cover_photo: None,
-            },
+            Server::new(
+                Uuid::new_v4(),
+                String::from("TestServer"),
+                user.id(),
+                None,
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+                None,
+            ),
             "has only required fields",
         ),
     ];
@@ -68,39 +76,6 @@ async fn test_create_server_success() {
 
         let server = app.database.get_server_by_id(id).await;
 
-        assert_eq!(
-            body.name,
-            server.name(),
-            "The server was not created in the database when {}",
-            error_case,
-        );
-
-        assert_eq!(
-            user.id(),
-            server.owner_id(),
-            "The server was not created in the database when {}",
-            error_case,
-        );
-
-        assert_eq!(
-            body.description,
-            server.description(),
-            "The server was not created in the database when {}",
-            error_case,
-        );
-
-        assert_eq!(
-            body.photo,
-            server.photo(),
-            "The server was not created in the database when {}",
-            error_case,
-        );
-
-        assert_eq!(
-            body.cover_photo,
-            server.cover_photo(),
-            "The server was not created in the database when {}",
-            error_case,
-        );
+        assert_eq!(body, server)
     }
 }

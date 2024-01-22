@@ -4,7 +4,6 @@ use crate::{
 };
 use actix_web::{web::Data, HttpRequest, HttpResponse};
 use chrono::Utc;
-use secrecy::ExposeSecret;
 use sqlx::PgPool;
 
 pub const CONFIRM_PATH: &str = "/users/confirm";
@@ -15,12 +14,7 @@ pub async fn confirm(req: HttpRequest, db_pool: Data<PgPool>) -> HttpResponse {
         Some(confirmation_token) => {
             match get_confirmation_token(&db_pool, confirmation_token).await {
                 Ok(confirmation_token) => {
-                    match get_claims_from_token(
-                        confirmation_token
-                            .confirmation_token()
-                            .expose_secret()
-                            .clone(),
-                    ) {
+                    match get_claims_from_token(confirmation_token.expose().clone()) {
                         Ok(claims) => {
                             let now = Utc::now().timestamp() as usize;
                             if claims.iat > now {

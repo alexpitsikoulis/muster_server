@@ -3,7 +3,7 @@ use rand::RngCore;
 use secrecy::{ExposeSecret, Secret};
 use serde::{
     de::{Unexpected, Visitor},
-    Deserialize, Serialize,
+    Deserialize, Deserializer, Serialize,
 };
 
 pub const ALLOWED_PASSWORD_CHARS: &[char] = &[
@@ -22,64 +22,11 @@ pub enum PasswordValidationErr {
     ArgonErr(argon2::Error),
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct Password(String);
-
-impl std::fmt::Display for Password {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Serialize for Password {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(self.as_ref())
-    }
-}
-
-impl<'de> Deserialize<'de> for Password {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_string(PasswordVisitor)
-    }
-}
-
-struct PasswordVisitor;
-
-impl<'de> Visitor<'de> for PasswordVisitor {
-    type Value = Password;
-
-    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "an 8-64 character string containing at least one uppercase letter, one lowercase letter, one number, and one special character")
-    }
-
-    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        if v.starts_with("$argon2i$") || v.starts_with("$argon2d$") || v.starts_with("$argon2id$") {
-            Ok(Password::from_raw(v))
-        } else {
-            Password::try_from(Secret::new(v.clone()))
-                .map_err(|_| E::invalid_value(Unexpected::Str(&v), &self))
-        }
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        self.visit_string(v.to_string())
-    }
-}
+#[derive(Clone, Debug)]
+pub struct Password(Secret<String>);
 
 impl Password {
-    pub fn from_raw(password: String) -> Self {
+    pub fn from_raw(password: Secret<String>) -> Self {
         Password(password)
     }
 
@@ -135,14 +82,24 @@ impl Password {
         Result::Ok(())
     }
 
-    pub fn compare(password: Secret<String>, hash: String) -> bool {
-        argon2::verify_encoded(&hash, password.expose_secret().as_bytes()).unwrap()
+    pub fn compare(&self, password: &Secret<String>) -> bool {
+        argon2::verify_encoded(self.as_ref(), password.expose_secret().as_bytes()).unwrap()
+    }
+
+    pub fn inner(&self) -> &Secret<String> {
+        &self.0
     }
 }
 
 impl AsRef<str> for Password {
     fn as_ref(&self) -> &str {
-        &self.0
+        self.0.expose_secret()
+    }
+}
+
+impl PartialEq for Password {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
     }
 }
 
@@ -162,13 +119,115 @@ impl TryFrom<Secret<String>> for Password {
                 let config = Config::original();
 
                 match argon2::hash_encoded(value.expose_secret().as_bytes(), &salt, &config) {
-                    Ok(hash) => Ok(Self(hash)),
+                    Ok(hash) => Ok(Self(Secret::new(hash))),
                     Err(e) => Err(PasswordValidationErr::ArgonErr(e)),
                 }
             }
             Err(e) => Err(e),
         }
     }
+}
+
+impl Serialize for Password {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_ref())
+    }
+}
+
+impl<'de> Deserialize<'de> for Password {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(PasswordVisitor)
+    }
+}
+
+struct PasswordVisitor;
+
+impl<'de> Visitor<'de> for PasswordVisitor {
+    type Value = Password;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "an 8-64 character string containing at least one uppercase letter, one lowercase letter, one number, and one special character")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        if v.len() > 64
+            && (v.starts_with("$argon2i$")
+                || v.starts_with("$argon2d$")
+                || v.starts_with("$argon2id$"))
+        {
+            Ok(Password::from_raw(Secret::new(v)))
+        } else {
+            Password::try_from(Secret::new(v.clone()))
+                .map_err(|_| E::invalid_value(Unexpected::Str(&v), &self))
+        }
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.visit_string(v.to_string())
+    }
+}
+
+struct PasswordOptionVisitor;
+
+impl<'de> Visitor<'de> for PasswordOptionVisitor {
+    type Value = Option<Password>;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "an 8-64 character string containing at least one uppercase letter, one lowercase letter, one number, and one special character")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        if v.starts_with("$argon2i$") || v.starts_with("$argon2d$") || v.starts_with("$argon2id$") {
+            Ok(Some(Password::from_raw(Secret::new(v))))
+        } else {
+            Ok(Some(Password::try_from(Secret::new(v.clone())).map_err(
+                |_| E::invalid_value(Unexpected::Str(&v), &self),
+            )?))
+        }
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.visit_string(v.to_string())
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(PasswordOptionVisitor)
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(None)
+    }
+}
+
+pub fn deserialize_password_option<'de, D>(deserializer: D) -> Result<Option<Password>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_option(PasswordOptionVisitor)
 }
 
 #[cfg(test)]

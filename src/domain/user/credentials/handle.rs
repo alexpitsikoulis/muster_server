@@ -1,6 +1,6 @@
 use serde::{
     de::{Unexpected, Visitor},
-    Deserialize, Serialize,
+    Deserialize, Deserializer, Serialize,
 };
 
 #[derive(Debug)]
@@ -25,49 +25,6 @@ pub struct Handle(String);
 impl std::fmt::Display for Handle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-impl Serialize for Handle {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(self.as_ref())
-    }
-}
-
-impl<'de> Deserialize<'de> for Handle {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_string(HandleVisitor)
-    }
-}
-
-struct HandleVisitor;
-
-impl<'de> Visitor<'de> for HandleVisitor {
-    type Value = Handle;
-
-    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "a handle no longer than 20 characters containing only letters, numbers, or the following characters:  '!', '#', '$', '%', '&', '*', '+', ',', '-', '.', ':', ';', '=', '?',
-        '@', '[', ']', '^', '_', '`', '|', '~'")
-    }
-
-    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Handle::try_from(v.as_str()).map_err(|_| E::invalid_value(Unexpected::Str(&v), &self))
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        self.visit_string(v.to_string())
     }
 }
 
@@ -109,6 +66,97 @@ impl TryFrom<&str> for Handle {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::try_from(value.to_string())
     }
+}
+
+impl Serialize for Handle {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_ref())
+    }
+}
+
+impl<'de> Deserialize<'de> for Handle {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(HandleVisitor)
+    }
+}
+
+struct HandleVisitor;
+
+impl<'de> Visitor<'de> for HandleVisitor {
+    type Value = Handle;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "a handle no longer than 20 characters containing only letters, numbers, or the following characters:  '!', '#', '$', '%', '&', '*', '+', ',', '-', '.', ':', ';', '=', '?',
+        '@', '[', ']', '^', '_', '`', '|', '~'")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Handle::try_from(v.as_str()).map_err(|_| E::invalid_value(Unexpected::Str(&v), &self))
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.visit_string(v.to_string())
+    }
+}
+
+pub struct HandleOptionVisitor;
+
+impl<'de> Visitor<'de> for HandleOptionVisitor {
+    type Value = Option<Handle>;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "a handle no longer than 20 characters containing only letters, numbers, or the following characters:  '!', '#', '$', '%', '&', '*', '+', ',', '-', '.', ':', ';', '=', '?',
+        '@', '[', ']', '^', '_', '`', '|', '~'")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(Some(Handle::try_from(v.as_str()).map_err(|_| {
+            E::invalid_value(Unexpected::Str(&v), &self)
+        })?))
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.visit_string(v.to_string())
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(HandleOptionVisitor)
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(None)
+    }
+}
+
+pub fn deserialize_handle_option<'de, D>(deserializer: D) -> Result<Option<Handle>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_option(HandleOptionVisitor)
 }
 
 #[cfg(test)]

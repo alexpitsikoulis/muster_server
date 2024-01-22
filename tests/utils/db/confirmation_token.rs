@@ -12,7 +12,7 @@ impl TestDB {
         let token = generate_token(user_id).expect("Failed to generate test confirmation token");
         let confirmation_token = ConfirmationToken::new(Secret::new(token), user_id);
         match insert_confirmation_token(&self.db_pool, &confirmation_token).await {
-            Ok(()) => confirmation_token,
+            Ok(_) => confirmation_token,
             Err(e) => panic!("Failed to insert test confirmation token: {:?}", e),
         }
     }

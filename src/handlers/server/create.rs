@@ -3,30 +3,21 @@ use actix_web::{
     web::{self, Json},
     HttpRequest, HttpResponse,
 };
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Deserialize, Serialize, Clone)]
-pub struct CreateServerRequestData {
-    pub name: String,
-    pub description: Option<String>,
-    pub photo: Option<String>,
-    pub cover_photo: Option<String>,
-}
-
 #[tracing::instrument(
     name = "Creating new server",
-    skip(server_details, db_pool),
+    skip(server, db_pool),
     fields(
-        server_name = %server_details.name.clone(),
-        server_description = %server_details.description.clone().unwrap_or_default(),
-        server_photo = %server_details.photo.clone().unwrap_or_default(),
-        server_cover_photo = %server_details.cover_photo.clone().unwrap_or_default(),
+        server_name = %server.name().clone(),
+        server_description = %server.description().clone().unwrap_or_default(),
+        server_photo = %server.photo().clone().unwrap_or_default(),
+        server_cover_photo = %server.cover_photo().clone().unwrap_or_default(),
     )
 )]
 pub async fn create(
-    Json(server_details): Json<CreateServerRequestData>,
+    Json(mut server): Json<Server>,
     db_pool: web::Data<PgPool>,
     req: HttpRequest,
 ) -> HttpResponse {
@@ -44,12 +35,12 @@ pub async fn create(
             match get_claims_from_token(token) {
                 Ok(claims) => {
                     let subject = claims.sub;
-                    if server_details.name.len() > 50 {
+                    if server.name().len() > 50 {
                         let error = "Server name is too long, must be no more than 50 characters";
                         tracing::error!("400 - {}", error);
                         return HttpResponse::BadRequest().body(error);
                     }
-                    let owner_id = match Uuid::parse_str(&subject) {
+                    server.set_owner_id(match Uuid::parse_str(&subject) {
                         Ok(sub) => sub,
                         Err(e) => {
                             let error =
@@ -57,8 +48,7 @@ pub async fn create(
                             tracing::error!("400 - {}", error);
                             return HttpResponse::BadRequest().body(error);
                         }
-                    };
-                    let server = Server::from_create_request(server_details, owner_id);
+                    });
 
                     match upsert_server(db_pool.get_ref(), &server).await {
                         Ok(_) => {

@@ -3,7 +3,6 @@ use crate::utils::{
     http_client::{ContentType, Header, Path},
 };
 use muttr_server::handlers::user::CONFIRM_PATH;
-use secrecy::ExposeSecret;
 
 #[tokio::test]
 pub async fn test_confirm_success() {
@@ -19,11 +18,7 @@ pub async fn test_confirm_success() {
     let response = app
         .client
         .request(
-            Path::POST(format!(
-                "{}/{}",
-                CONFIRM_PATH,
-                confirmation_token.confirmation_token().expose_secret()
-            )),
+            Path::POST(format!("{}/{}", CONFIRM_PATH, confirmation_token.expose())),
             &[Header::ContentType(ContentType::Json)],
             body,
         )
@@ -32,6 +27,7 @@ pub async fn test_confirm_success() {
     assert_eq!(
         200,
         response.status().as_u16(),
-        "The API did not return 200 when confirming valid subscription token",
+        "The API did not return 200 when confirming valid subscription token: {}",
+        response.text().await.unwrap(),
     );
 }

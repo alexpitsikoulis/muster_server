@@ -33,7 +33,7 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult,
         .bind(user.email().as_ref().to_string())
         .bind(user.handle().as_ref().to_string())
         .bind(user.name())
-        .bind(user.password().to_string())
+        .bind(user.password().as_ref())
         .bind(user.profile_photo())
         .bind(user.bio())
         .bind(user.email_confirmed())
@@ -45,7 +45,16 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult,
     .await
 }
 
-pub async fn confirm_user_email(db_pool: &PgPool, user_id: Uuid) -> Result<PgQueryResult, Error> {
+pub async fn patch_user<'a>(db_pool: &PgPool, q: String) -> Result<PgQueryResult, Error> {
+    query(&q).execute(db_pool).await
+}
+
+#[tracing::instrument(
+    name = "Setting user email_confirmed to true in database",
+    skip(id, db_pool),
+    fields(user_id = %id)
+)]
+pub async fn confirm_user_email(db_pool: &PgPool, id: Uuid) -> Result<PgQueryResult, Error> {
     query(
         r#"
         UPDATE users
@@ -55,7 +64,7 @@ pub async fn confirm_user_email(db_pool: &PgPool, user_id: Uuid) -> Result<PgQue
             id = $1
         "#,
     )
-    .bind(user_id)
+    .bind(id)
     .execute(db_pool)
     .await
 }
@@ -87,7 +96,7 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
         user_email = %email
     )
 )]
-pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, Error> {
+pub async fn get_user_by_email(db_pool: &PgPool, email: &str) -> Result<User, Error> {
     query_as(
         r#"
             SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
@@ -107,7 +116,7 @@ pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, 
         user_handle = %handle
     )
 )]
-pub async fn get_user_by_handle(db_pool: &PgPool, handle: String) -> Result<User, Error> {
+pub async fn get_user_by_handle(db_pool: &PgPool, handle: &str) -> Result<User, Error> {
     query_as(
         r#"
             SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts

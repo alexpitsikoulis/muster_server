@@ -49,15 +49,22 @@ pub async fn signup(
                 Ok(token) => {
                     let confirmation_token = ConfirmationToken::new(Secret::new(token), user.id());
                     match insert_confirmation_token(&db_pool, &confirmation_token).await {
-                        Ok(()) => {
+                        Ok(_) => {
+                            tracing::info!(
+                                "Successfully inserted confirmation_token for user {}",
+                                user.id()
+                            );
                             match email_client
-                                .send_confirmation_email(
-                                    user.email(),
-                                    confirmation_token.confirmation_token(),
-                                )
+                                .send_confirmation_email(user.email(), &confirmation_token.inner())
                                 .await
                             {
-                                Ok(()) => HttpResponse::Ok().finish(),
+                                Ok(()) => {
+                                    tracing::info!(
+                                        "Confirmation email for user {} sent successfully",
+                                        user.id()
+                                    );
+                                    HttpResponse::Ok().finish()
+                                }
                                 Err(e) => {
                                     tracing::error!(
                                         "Failed to send confirmation email for user {}: {:?}",

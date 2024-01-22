@@ -3,8 +3,9 @@ mod tests;
 
 use actix_web::HttpResponse;
 pub use credentials::{
-    Email, EmailValidationErr, Handle, HandleValidationErr, Login, LoginData, Password,
-    PasswordValidationErr, ALLOWED_HANDLE_CHARS, ALLOWED_PASSWORD_CHARS,
+    deserialize_handle_option, deserialize_password_option, deserilaize_email_option, Email,
+    EmailValidationErr, Handle, HandleValidationErr, Login, Password, PasswordValidationErr,
+    ALLOWED_HANDLE_CHARS, ALLOWED_PASSWORD_CHARS,
 };
 
 use chrono::{DateTime, Utc};
