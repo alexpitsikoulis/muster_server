@@ -31,12 +31,12 @@ impl TryFrom<Form<LoginForm>> for LoginData {
     type Error = String;
 
     fn try_from(form: Form<LoginForm>) -> Result<Self, Self::Error> {
-        match Email::parse(form.login.clone()) {
+        match Email::try_from(form.login.clone()) {
             Ok(e) => Ok(LoginData {
                 login: Login::Email(e.as_ref().to_string()),
                 password: form.password.clone(),
             }),
-            Err(_) => match Handle::parse(form.login.clone()) {
+            Err(_) => match Handle::try_from(form.login.clone()) {
                 Ok(h) => Ok(LoginData {
                     login: Login::Handle(h.as_ref().to_string()),
                     password: form.password.clone(),

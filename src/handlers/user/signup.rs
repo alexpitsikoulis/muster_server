@@ -1,5 +1,9 @@
 use crate::{
-    domain::{confirmation_token::ConfirmationToken, email, user::User},
+    domain::{
+        confirmation_token::ConfirmationToken,
+        email,
+        user::{Email, Handle, Password, User},
+    },
     storage::{insert_confirmation_token, upsert_user},
     utils::jwt::generate_token,
 };
@@ -8,41 +12,39 @@ use actix_web::{
     HttpResponse,
 };
 use secrecy::Secret;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use uuid::Uuid;
 
 pub const SIGNUP_PATH: &str = "/users/signup";
 
-#[derive(serde::Deserialize, Clone)]
-pub struct SignupFormData {
-    pub email: String,
-    pub handle: String,
-    pub password: Secret<String>,
+#[derive(Serialize, Deserialize)]
+pub struct UserSignupFormData {
+    #[serde(default)]
+    pub id: Uuid,
+    pub email: Email,
+    pub handle: Handle,
+    pub password: Password,
 }
 
 #[tracing::instrument(
     name = "Signing up new user",
     skip(form, db_pool, email_client),
     fields(
-        user_email = %form.email,
-        user_handle = %form.handle,
+        id = %form.id,
+        email = %form.email.as_ref(),
+        handle = %form.handle.as_ref(),
     )
 )]
 pub async fn signup(
-    form: Form<SignupFormData>,
+    form: Form<UserSignupFormData>,
     db_pool: Data<PgPool>,
     email_client: Data<email::Client>,
 ) -> HttpResponse {
-    let user = match User::try_from(form) {
-        Ok(u) => u,
-        Err(e) => {
-            tracing::error!("Failed to validate new user: {:?}", e);
-            return e.handle_http();
-        }
-    };
-
+    let user = User::from(form.into_inner());
     match upsert_user(db_pool.get_ref(), &user).await {
-        Ok(()) => {
-            tracing::info!("User {:?} successfully inserted to database", user);
+        Ok(_) => {
+            tracing::info!("User {} successfully inserted to database", user.id());
             match generate_token(user.id()) {
                 Ok(token) => {
                     let confirmation_token = ConfirmationToken::new(Secret::new(token), user.id());
@@ -86,6 +88,9 @@ pub async fn signup(
                 }
             }
         }
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Err(e) => {
+            tracing::error!("Failed to upsert user {:?} to database: {:?}", user, e);
+            HttpResponse::InternalServerError().finish()
+        }
     }
 }

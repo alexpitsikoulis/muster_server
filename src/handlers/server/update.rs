@@ -9,9 +9,9 @@ use crate::{domain::server::Server, storage::upsert_server};
 
 #[tracing::instrument(
     name = "Updating server details",
-    skip(server_details, db_pool),
+    skip(server_id, server_details, db_pool),
     fields(
-        id = %server_details.clone().id(),
+        id = %server_id,
         name = %server_details.clone().name(),
         owner_id = %server_details.clone().owner_id(),
         description = %server_details.clone().description().unwrap_or_default(),
@@ -27,7 +27,7 @@ pub async fn update(
     let id = server_id.into_inner();
     server_details.set_id(id);
     match upsert_server(db_pool.get_ref(), &server_details).await {
-        Ok(()) => HttpResponse::Ok().finish(),
+        Ok(_) => HttpResponse::Ok().finish(),
         Err(e) => match e {
             sqlx::Error::RowNotFound => HttpResponse::NotFound().body("Server not found"),
             _ => HttpResponse::InternalServerError().finish(),

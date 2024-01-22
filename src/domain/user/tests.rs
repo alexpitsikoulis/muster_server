@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        domain::user::{email::Email, Handle, Password},
+        domain::user::credentials::{Email, Handle, Password},
         utils::test::{HANDLE_GENERATOR, PASSWORD_GENERATOR},
     };
     use claim::{assert_err, assert_ok};
@@ -30,13 +30,13 @@ mod tests {
             "alex@_test.com",
         ];
         for email in emails {
-            assert_err!(Email::parse(email.to_string()));
+            assert_err!(Email::try_from(email.to_string()));
         }
     }
 
     #[quickcheck_macros::quickcheck]
     fn valid_email_parsed_successfully(email: ValidEmailFixture) -> bool {
-        Email::parse(email.0).is_ok()
+        Email::try_from(email.0).is_ok()
     }
 
     #[derive(Clone, Debug)]
@@ -52,43 +52,43 @@ mod tests {
     #[test]
     fn fails_when_less_than_8_grapheme() {
         let password = Secret::new("P@ssw0r".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_more_than_64_grapheme() {
         let filler = "A".repeat(60);
         let password = Secret::new(format!("P@ss1{}", filler).to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_no_uppercase() {
         let password = Secret::new("n0neofyourbus!ness".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_no_lowercase() {
         let password = Secret::new("N0NEOFYOURBUS!NESS".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_no_number() {
         let password = Secret::new("Noneofyourbus!ness".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_no_special_char() {
         let password = Secret::new("N0neofyourbusiness".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[quickcheck_macros::quickcheck]
     fn valid_password_parses_successfully(password: ValidPasswordFixture) -> bool {
-        Password::parse(password.0).is_ok()
+        Password::try_from(password.0).is_ok()
     }
 
     #[derive(Clone, Debug)]
@@ -104,13 +104,13 @@ mod tests {
     #[test]
     fn a_20_grapheme_long_handle_is_valid() {
         let handle = "A".repeat(20);
-        assert_ok!(Handle::parse(handle));
+        assert_ok!(Handle::try_from(handle));
     }
 
     #[test]
     fn a_handle_longer_than_20_grapheme_is_rejected() {
         let handle = "A".repeat(21);
-        assert_err!(Handle::parse(handle));
+        assert_err!(Handle::try_from(handle));
     }
 
     #[test]
@@ -125,7 +125,7 @@ mod tests {
         ];
 
         for handle in handles {
-            assert_err!(Handle::parse(handle.to_string()));
+            assert_err!(Handle::try_from(handle.to_string()));
         }
     }
 
@@ -133,17 +133,17 @@ mod tests {
     fn handle_with_forbidden_characters_rejected() {
         let handles = &["/", "(", ")", "'", "\"", "<", ">", "\\", "{", "}"];
         for handle in handles {
-            assert_err!(Handle::parse(handle.to_string()));
+            assert_err!(Handle::try_from(handle.to_string()));
         }
     }
 
     #[test]
     fn empty_string_handle_rejected() {
-        assert_err!(Handle::parse("".to_string()));
+        assert_err!(Handle::try_from("".to_string()));
     }
 
     #[quickcheck_macros::quickcheck]
     fn valid_handle_parsed_successfully(handle: ValidHandleFixture) -> bool {
-        Handle::parse(handle.0).is_ok()
+        Handle::try_from(handle.0).is_ok()
     }
 }

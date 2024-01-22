@@ -46,7 +46,13 @@ pub async fn confirm(req: HttpRequest, db_pool: Data<PgPool>) -> HttpResponse {
                                 return HttpResponse::InternalServerError().finish();
                             }
                             match confirm_user_email(&db_pool, confirmation_token.user_id()).await {
-                                Ok(()) => return HttpResponse::Ok().finish(),
+                                Ok(_) => {
+                                    tracing::error!(
+                                        "Email successfully confirmed for user {}",
+                                        confirmation_token.user_id()
+                                    );
+                                    return HttpResponse::Ok().finish();
+                                }
                                 Err(e) => match e {
                                     sqlx::Error::RowNotFound => {
                                         tracing::error!(

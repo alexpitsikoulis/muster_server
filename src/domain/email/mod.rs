@@ -4,14 +4,14 @@ pub use client::*;
 use crate::domain::user;
 
 #[derive(serde::Deserialize, serde::Serialize)]
-pub struct Email {
+pub struct ServerEmail {
     sender: String,
     recipient: String,
     subject: String,
     body: String,
 }
 
-impl Email {
+impl ServerEmail {
     pub fn new(
         sender: user::Email,
         recipient: user::Email,
@@ -21,7 +21,7 @@ impl Email {
     ) -> Self {
         let sender = sender.as_ref().to_string();
         let recipient = recipient.as_ref().to_string();
-        Email {
+        ServerEmail {
             sender,
             recipient,
             subject,

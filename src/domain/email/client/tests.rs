@@ -15,7 +15,7 @@ mod tests {
     #[tokio::test]
     async fn send_email_sends_request_to_base_url() {
         let mock_server = MockServer::start().await;
-        let sender = user::Email::parse(SafeEmail().fake()).unwrap();
+        let sender = user::Email::try_from(SafeEmail().fake::<String>()).unwrap();
         let email_client = Client::new(mock_server.uri(), sender);
 
         Mock::given(header("Content-Type", "application/json"))
@@ -26,7 +26,7 @@ mod tests {
             .mount(&mock_server)
             .await;
 
-        let email = user::Email::parse(SafeEmail().fake()).unwrap();
+        let email = user::Email::try_from(SafeEmail().fake::<String>()).unwrap();
         let subject: String = Sentence(1..2).fake();
         let body: String = Paragraph(1..10).fake();
 

@@ -1,6 +1,10 @@
 use argon2::{self, Config};
 use rand::RngCore;
 use secrecy::{ExposeSecret, Secret};
+use serde::{
+    de::{Unexpected, Visitor},
+    Deserialize, Serialize,
+};
 
 pub const ALLOWED_PASSWORD_CHARS: &[char] = &[
     ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<',
@@ -18,29 +22,65 @@ pub enum PasswordValidationErr {
     ArgonErr(argon2::Error),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Password(String);
 
-impl Password {
-    pub fn parse(password: Secret<String>) -> Result<Self, PasswordValidationErr> {
-        match Self::validate(password.clone()) {
-            Ok(()) => {
-                let salt = {
-                    let mut unencoded = [0u8; 16];
-                    let mut rng = rand::thread_rng();
-                    rng.fill_bytes(&mut unencoded);
-                    unencoded
-                };
+impl std::fmt::Display for Password {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
-                let config = Config::original();
+impl Serialize for Password {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_ref())
+    }
+}
 
-                match argon2::hash_encoded(password.expose_secret().as_bytes(), &salt, &config) {
-                    Ok(hash) => Ok(Self(hash)),
-                    Err(e) => Err(PasswordValidationErr::ArgonErr(e)),
-                }
-            }
-            Err(e) => Err(e),
+impl<'de> Deserialize<'de> for Password {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_string(PasswordVisitor)
+    }
+}
+
+struct PasswordVisitor;
+
+impl<'de> Visitor<'de> for PasswordVisitor {
+    type Value = Password;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "an 8-64 character string containing at least one uppercase letter, one lowercase letter, one number, and one special character")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        if v.starts_with("$argon2i$") || v.starts_with("$argon2d$") || v.starts_with("$argon2id$") {
+            Ok(Password::from_raw(v))
+        } else {
+            Password::try_from(Secret::new(v.clone()))
+                .map_err(|_| E::invalid_value(Unexpected::Str(&v), &self))
         }
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.visit_string(v.to_string())
+    }
+}
+
+impl Password {
+    pub fn from_raw(password: String) -> Self {
+        Password(password)
     }
 
     fn validate(password: Secret<String>) -> Result<(), PasswordValidationErr> {
@@ -106,6 +146,31 @@ impl AsRef<str> for Password {
     }
 }
 
+impl TryFrom<Secret<String>> for Password {
+    type Error = PasswordValidationErr;
+
+    fn try_from(value: Secret<String>) -> Result<Self, Self::Error> {
+        match Self::validate(value.clone()) {
+            Ok(()) => {
+                let salt = {
+                    let mut unencoded = [0u8; 16];
+                    let mut rng = rand::thread_rng();
+                    rng.fill_bytes(&mut unencoded);
+                    unencoded
+                };
+
+                let config = Config::original();
+
+                match argon2::hash_encoded(value.expose_secret().as_bytes(), &salt, &config) {
+                    Ok(hash) => Ok(Self(hash)),
+                    Err(e) => Err(PasswordValidationErr::ArgonErr(e)),
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{domain::user::Password, utils::test::PASSWORD_GENERATOR};
@@ -125,42 +190,42 @@ mod tests {
     #[test]
     fn fails_when_less_than_8_grapheme() {
         let password = Secret::new("P@ssw0r".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_more_than_64_grapheme() {
         let filler = "A".repeat(60);
         let password = Secret::new(format!("P@ss1{}", filler).to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_no_uppercase() {
         let password = Secret::new("n0neofyourbus!ness".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_no_lowercase() {
         let password = Secret::new("N0NEOFYOURBUS!NESS".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_no_number() {
         let password = Secret::new("Noneofyourbus!ness".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[test]
     fn fails_when_no_special_char() {
         let password = Secret::new("N0neofyourbusiness".to_string());
-        assert_err!(Password::parse(password));
+        assert_err!(Password::try_from(password));
     }
 
     #[quickcheck_macros::quickcheck]
     fn valid_password_parses_successfully(password: ValidPasswordFixture) -> bool {
-        Password::parse(password.0).is_ok()
+        Password::try_from(password.0).is_ok()
     }
 }

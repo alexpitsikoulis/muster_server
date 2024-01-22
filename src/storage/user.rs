@@ -1,13 +1,13 @@
-use sqlx::{Error, PgPool};
+use sqlx::{postgres::PgQueryResult, query, query_as, Error, PgPool};
 use uuid::Uuid;
 
-use crate::domain::user::{Email, Handle, User};
+use crate::domain::user::User;
 
 pub const USERS_TABLE_NAME: &str = "users";
 
 #[tracing::instrument(name = "Upserting user details to database", skip(user, db_pool))]
-pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
-    sqlx::query!(
+pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<PgQueryResult, Error> {
+    query(
         r#"
         INSERT INTO users (id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -27,33 +27,26 @@ pub async fn upsert_user(db_pool: &PgPool, user: &User) -> Result<(), Error> {
             WHERE
                 (users.email, users.name, users.password, users.profile_photo, users.bio, users.email_confirmed, users.deleted_at, users.failed_attempts) IS DISTINCT FROM
                 (EXCLUDED.email, EXCLUDED.name, EXCLUDED.password, EXCLUDED.profile_photo, EXCLUDED.bio, EXCLUDED.email_confirmed, EXCLUDED.deleted_at, EXCLUDED.failed_attempts)
-        "#,
-        user.id(),
-        user.email().as_ref().to_string(),
-        user.handle().as_ref().to_string(),
-        user.name(),
-        user.password(),
-        user.profile_photo(),
-        user.bio(),
-        user.email_confirmed(),
-        user.created_at(),
-        user.updated_at(),
-        user.deleted_at(),
-        user.failed_attempts(),
+        "#
     )
+        .bind(user.id())
+        .bind(user.email().as_ref().to_string())
+        .bind(user.handle().as_ref().to_string())
+        .bind(user.name())
+        .bind(user.password().to_string())
+        .bind(user.profile_photo())
+        .bind(user.bio())
+        .bind(user.email_confirmed())
+        .bind(user.created_at())
+        .bind(user.updated_at())
+        .bind(user.deleted_at())
+        .bind(user.failed_attempts())
     .execute(db_pool)
     .await
-    .map(|_| {
-        tracing::info!("UPSERT user {:?} query successful", user);
-    })
-    .map_err(|e| {
-        tracing::error!("UPSERT user {:?} failed: {:?}", user, e);
-        e
-    })
 }
 
-pub async fn confirm_user_email(db_pool: &PgPool, user_id: Uuid) -> Result<(), Error> {
-    sqlx::query!(
+pub async fn confirm_user_email(db_pool: &PgPool, user_id: Uuid) -> Result<PgQueryResult, Error> {
+    query(
         r#"
         UPDATE users
         SET
@@ -61,24 +54,10 @@ pub async fn confirm_user_email(db_pool: &PgPool, user_id: Uuid) -> Result<(), E
         WHERE
             id = $1
         "#,
-        user_id,
     )
+    .bind(user_id)
     .execute(db_pool)
     .await
-    .map(|_| {
-        tracing::info!(
-            "UPDATE user {} SET email_confirmed TRUE successful",
-            user_id
-        );
-    })
-    .map_err(|e| {
-        tracing::error!(
-            "UDPATE user {} SET email_confirmed TRUE failed: {:?}",
-            user_id,
-            e
-        );
-        e
-    })
 }
 
 #[tracing::instrument(
@@ -89,36 +68,16 @@ pub async fn confirm_user_email(db_pool: &PgPool, user_id: Uuid) -> Result<(), E
     )
 )]
 pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
-    sqlx::query!(
+    query_as(
         r#"
-        SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
-        FROM users
-        WHERE id = $1
-        "#, id
+            SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
+            FROM users
+            WHERE id = $1
+        "#
     )
+    .bind(id)
     .fetch_one(db_pool)
     .await
-    .map(|u| {
-        tracing::info!("GET user by id {} successful", id);
-        User::new(
-            u.id,
-            Email::parse_str(&u.email).unwrap_or_else(|_| panic!("User {} has invalid email '{}' in database", u.id, u.email)),
-            Handle::parse_str(&u.handle).unwrap_or_else(|_| panic!("User {} has invalid handle '{}' in daatabase", u.id, u.handle)),
-            u.name,
-            u.password,
-            u.profile_photo,
-            u.bio,
-            u.failed_attempts,
-            u.email_confirmed,
-            u.created_at,
-            u.updated_at,
-            u.deleted_at,
-        )
-    })
-    .map_err(|e| {
-        tracing::error!("GET user by id {} failed: {:?}", id, e); 
-        e
-    })
 }
 
 #[tracing::instrument(
@@ -129,36 +88,16 @@ pub async fn get_user_by_id(db_pool: &PgPool, id: Uuid) -> Result<User, Error> {
     )
 )]
 pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, Error> {
-    sqlx::query!(
+    query_as(
         r#"
-        SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
-        FROM users
-        WHERE email = $1
-        "#, email
+            SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
+            FROM users
+            WHERE email = $1
+        "#
     )
+    .bind(email)
         .fetch_one(db_pool)
         .await
-        .map(|u| {
-            tracing::info!("GET user by email {} successful", email);
-            User::new(
-                u.id,
-                Email::parse_str(&u.email).unwrap_or_else(|_| panic!("User {} has invalid email '{}' in database", u.id, u.email)),
-                Handle::parse_str(&u.handle).unwrap_or_else(|_| panic!("User {} has invalid handle '{}' in database", u.id, u.handle)),
-                u.name,
-                u.password,
-                u.profile_photo,
-                u.bio,
-                u.failed_attempts,
-                u.email_confirmed,
-                u.created_at,
-                u.updated_at,
-                u.deleted_at,
-            )
-        })
-        .map_err(|e| {
-            tracing::error!("GET user by email {} failed: {:?}", email, e);
-            e
-        })
 }
 
 #[tracing::instrument(
@@ -169,34 +108,13 @@ pub async fn get_user_by_email(db_pool: &PgPool, email: String) -> Result<User, 
     )
 )]
 pub async fn get_user_by_handle(db_pool: &PgPool, handle: String) -> Result<User, Error> {
-    sqlx::query!(
+    query_as(
         r#"
-        SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
-        FROM users
-        WHERE handle = $1
-        "#, handle
-    )
+            SELECT id, email, handle, name, password, profile_photo, bio, email_confirmed, created_at, updated_at, deleted_at, failed_attempts
+            FROM users
+            WHERE handle = $1
+        "#)
+        .bind(handle)
         .fetch_one(db_pool)
         .await
-        .map(|u| {
-            tracing::info!("GET user by handle {} successful", handle);
-            User::new(
-                u.id,
-                Email::parse_str(&u.email).unwrap_or_else(|_| panic!("User {} has invalid email '{}' in database", u.id, u.email)),
-                Handle::parse_str(&u.handle).unwrap_or_else(|_| panic!("User {} has invalid handle '{}' in database", u.id, u.handle)),
-                u.name,
-                u.password,
-                u.profile_photo,
-                u.bio,
-                u.failed_attempts,
-                u.email_confirmed,
-                u.created_at,
-                u.updated_at,
-                u.deleted_at,
-            )
-        })
-        .map_err(|e| {
-            tracing::error!("GET user by handle {} failed: {:?}", handle, e);
-            e
-        })
 }

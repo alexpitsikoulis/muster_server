@@ -1,19 +1,18 @@
-mod email;
-mod handle;
-mod login;
-mod password;
+mod credentials;
 mod tests;
 
-use actix_web::{web::Form, HttpResponse};
-pub use email::*;
-pub use handle::*;
-pub use login::*;
-pub use password::*;
+use actix_web::HttpResponse;
+pub use credentials::{
+    Email, EmailValidationErr, Handle, HandleValidationErr, Login, LoginData, Password,
+    PasswordValidationErr, ALLOWED_HANDLE_CHARS, ALLOWED_PASSWORD_CHARS,
+};
 
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::handlers::user::SignupFormData;
+use crate::handlers::user::UserSignupFormData;
 
 #[derive(Debug)]
 pub enum UserValidationError {
@@ -49,13 +48,14 @@ impl UserValidationError {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
 pub struct User {
+    #[serde(default)]
     id: Uuid,
     email: Email,
     handle: Handle,
+    password: Password,
     name: Option<String>,
-    password: String,
     profile_photo: Option<String>,
     bio: Option<String>,
     failed_attempts: i16,
@@ -65,14 +65,28 @@ pub struct User {
     deleted_at: Option<DateTime<Utc>>,
 }
 
+impl PartialEq for User {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.email == other.email
+            && self.handle == other.handle
+            && self.name == other.name
+            && self.profile_photo == other.profile_photo
+            && self.bio == other.bio
+            && self.failed_attempts == other.failed_attempts
+            && self.email_confirmed == other.email_confirmed
+            && self.deleted_at == other.deleted_at
+    }
+}
+
 impl User {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         email: Email,
         handle: Handle,
+        password: Password,
         name: Option<String>,
-        password: String,
         profile_photo: Option<String>,
         bio: Option<String>,
         failed_attempts: i16,
@@ -85,8 +99,8 @@ impl User {
             id,
             email,
             handle,
-            name,
             password,
+            name,
             profile_photo,
             bio,
             failed_attempts,
@@ -113,7 +127,7 @@ impl User {
         self.name.clone()
     }
 
-    pub fn password(&self) -> String {
+    pub fn password(&self) -> Password {
         self.password.clone()
     }
 
@@ -154,7 +168,7 @@ impl User {
     }
 
     pub fn set_email_string(&mut self, email: String) -> Result<(), EmailValidationErr> {
-        match Email::parse_str(&email) {
+        match Email::try_from(email.as_str()) {
             Ok(email) => {
                 self.email = email;
                 Ok(())
@@ -171,7 +185,7 @@ impl User {
     }
 
     pub fn set_handle_string(&mut self, handle: String) -> Result<(), HandleValidationErr> {
-        match Handle::parse_str(&handle) {
+        match Handle::try_from(handle.as_str()) {
             Ok(handle) => {
                 self.handle = handle;
                 Ok(())
@@ -188,7 +202,7 @@ impl User {
     }
 
     pub fn set_password(&mut self, password: Password) {
-        self.password = password.as_ref().to_string();
+        self.password = password;
     }
 
     pub fn set_profile_photo(&mut self, profile_photo: Option<String>) {
@@ -220,37 +234,22 @@ impl User {
     }
 }
 
-impl TryFrom<Form<SignupFormData>> for User {
-    type Error = UserValidationError;
-    fn try_from(form: Form<SignupFormData>) -> Result<Self, Self::Error> {
-        let email = match Email::parse(form.email.clone()) {
-            Ok(e) => e,
-            Err(e) => return Err(UserValidationError::EmailValidationErr(e)),
-        };
-        let handle = match Handle::parse(form.handle.clone()) {
-            Ok(h) => h,
-            Err(e) => return Err(UserValidationError::HandleValidationErr(e)),
-        };
-        let password = match Password::parse(form.password.clone()) {
-            Ok(p) => p,
-            Err(e) => return Err(UserValidationError::PasswordValidationErr(e)),
-        };
-
+impl From<UserSignupFormData> for User {
+    fn from(form: UserSignupFormData) -> Self {
         let now = Utc::now();
-
-        Ok(User::new(
-            Uuid::new_v4(),
-            email,
-            handle,
-            None,
-            password.as_ref().to_string(),
-            None,
-            None,
-            0,
-            false,
-            now,
-            now,
-            None,
-        ))
+        User {
+            id: form.id,
+            email: form.email,
+            handle: form.handle,
+            password: form.password,
+            name: None,
+            profile_photo: None,
+            bio: None,
+            failed_attempts: 0,
+            email_confirmed: false,
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
+        }
     }
 }

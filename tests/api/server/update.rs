@@ -24,6 +24,20 @@ async fn test_update_server_success() {
         (
             Server::new(
                 server.id(),
+                server.name(),
+                server.owner_id(),
+                server.description(),
+                server.photo(),
+                server.cover_photo(),
+                server.created_at(),
+                server.updated_at(),
+                server.deleted_at(),
+            ),
+            "nothing was changed",
+        ),
+        (
+            Server::new(
+                server.id(),
                 String::from("New Test Server Name"),
                 server.owner_id(),
                 server.description(),
@@ -121,7 +135,7 @@ async fn test_update_server_success() {
         ),
     ];
 
-    for (body, error_message) in test_cases {
+    for (body, error_case) in test_cases {
         let response = app
             .client
             .request(
@@ -135,7 +149,7 @@ async fn test_update_server_success() {
             200,
             response.status(),
             "The API did not return 200 on valid server update when {}",
-            error_message,
+            error_case,
         );
 
         server = app.database.get_server_by_id(server.id()).await;
@@ -144,35 +158,35 @@ async fn test_update_server_success() {
             body.name(),
             server.name(),
             "The server was not updated in the database when {}",
-            error_message,
+            error_case,
         );
 
         assert_eq!(
             body.owner_id(),
             server.owner_id(),
             "The server was not updated in the database when {}",
-            error_message,
+            error_case,
         );
 
         assert_eq!(
             body.description(),
             server.description(),
             "The server was not updated in the database when {}",
-            error_message,
+            error_case,
         );
 
         assert_eq!(
             body.photo(),
             server.photo(),
             "The server was not updated in the database when {}",
-            error_message,
+            error_case,
         );
 
         assert_eq!(
             body.cover_photo(),
             server.cover_photo(),
             "The server was not updated in the database when {}",
-            error_message,
+            error_case,
         );
     }
 }

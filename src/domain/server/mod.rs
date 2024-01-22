@@ -1,12 +1,12 @@
-mod request;
 use serde::{Deserialize, Serialize};
 
 use chrono::{DateTime, Utc};
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 use crate::handlers::server::CreateServerRequestData;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, FromRow, Clone, Debug, PartialEq)]
 pub struct Server {
     #[serde(default)]
     id: Uuid,
@@ -15,8 +15,11 @@ pub struct Server {
     description: Option<String>,
     photo: Option<String>,
     cover_photo: Option<String>,
+    #[serde(skip_deserializing)]
     created_at: DateTime<Utc>,
+    #[serde(skip_deserializing)]
     updated_at: DateTime<Utc>,
+    #[serde(skip_deserializing)]
     deleted_at: Option<DateTime<Utc>>,
 }
 

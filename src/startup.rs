@@ -26,7 +26,7 @@ impl App {
 
         let db_pool = Self::get_connection_pool(&config.database);
 
-        let sender_email = match Email::parse(config.email_client.sender_email) {
+        let sender_email = match Email::try_from(config.email_client.sender_email) {
             Ok(email) => email,
             Err(e) => {
                 tracing::error!(
@@ -60,15 +60,19 @@ impl App {
             actix_web::App::new()
                 .wrap(TracingLogger::default())
                 .route(HEALTH_CHECK_PATH, get().to(health_check))
+                .route(
+                    &format!("{}/{{user_id}}", user::BASE_PATH),
+                    put().to(user::update),
+                )
                 .route(user::SIGNUP_PATH, post().to(user::signup))
                 .route(user::LOGIN_PATH, post().to(user::login))
                 .route(
-                    format!("{}/{{confirmation_token}}", user::CONFIRM_PATH).as_str(),
+                    &format!("{}/{{confirmation_token}}", user::CONFIRM_PATH),
                     post().to(user::confirm),
                 )
                 .route(server::BASE_PATH, post().to(server::create))
                 .route(
-                    format!("{}/{{server_id}}", server::BASE_PATH).as_str(),
+                    &format!("{}/{{server_id}}", server::BASE_PATH),
                     put().to(server::update),
                 )
                 .app_data(db_pool.clone())

@@ -36,7 +36,8 @@ async fn test_signup_success() {
     assert_eq!(
         200,
         response.status().as_u16(),
-        "The API did not return 200 when signing up with valid login details",
+        "The API did not return 200 when signing up with valid login details: {:?}",
+        response.text().await.unwrap(),
     );
 
     match sqlx::query!(

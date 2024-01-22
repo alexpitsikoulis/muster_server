@@ -1,7 +1,7 @@
 mod confirmation_email;
 mod tests;
 
-use super::Email;
+use super::ServerEmail;
 use crate::domain::user;
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ impl Client {
     ) -> Result<(), reqwest::Error> {
         self.http_client
             .post(format!("{}/send", self.base_url))
-            .json(&Email::new(
+            .json(&ServerEmail::new(
                 self.sender.clone(),
                 recipient,
                 subject,

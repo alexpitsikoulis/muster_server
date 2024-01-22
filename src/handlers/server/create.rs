@@ -61,7 +61,13 @@ pub async fn create(
                     let server = Server::from_create_request(server_details, owner_id);
 
                     match upsert_server(db_pool.get_ref(), &server).await {
-                        Ok(_) => HttpResponse::Ok().body(server.id().to_string()),
+                        Ok(_) => {
+                            tracing::error!(
+                                "Server {} successfull inserted to database",
+                                server.id()
+                            );
+                            HttpResponse::Ok().body(server.id().to_string())
+                        }
                         Err(e) => {
                             tracing::error!("500 - Failed to execute query: {}", e);
                             HttpResponse::InternalServerError().finish()
