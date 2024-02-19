@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
 pub struct Server {
-    #[serde(default)]
+    #[serde(default = "Uuid::new_v4")]
     id: Uuid,
     name: String,
     owner_id: Uuid,
@@ -95,10 +95,6 @@ impl Server {
 
     pub fn deleted_at(&self) -> Option<DateTime<Utc>> {
         self.deleted_at
-    }
-
-    pub fn set_id(&mut self, id: Uuid) {
-        self.id = id;
     }
 
     pub fn set_name(&mut self, name: String) {

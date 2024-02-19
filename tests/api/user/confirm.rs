@@ -2,7 +2,7 @@ use crate::utils::{
     app::TestApp,
     http_client::{ContentType, Header, Path},
 };
-use muttr_server::handlers::user::CONFIRM_PATH;
+use muttr_server::handlers::user::{BASE_PATH, CONFIRM_PATH};
 
 #[actix::test]
 pub async fn test_confirm_success() {
@@ -18,7 +18,12 @@ pub async fn test_confirm_success() {
     let response = app
         .client
         .request(
-            Path::POST(format!("{}/{}", CONFIRM_PATH, confirmation_token.expose())),
+            Path::POST(format!(
+                "{}{}/{}",
+                BASE_PATH,
+                CONFIRM_PATH,
+                confirmation_token.expose()
+            )),
             &[Header::ContentType(ContentType::Json)],
             body,
         )

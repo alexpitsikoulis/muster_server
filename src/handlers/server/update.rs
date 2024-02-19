@@ -21,11 +21,9 @@ use crate::{domain::server::Server, storage::upsert_server};
 )]
 pub async fn update(
     server_id: Path<Uuid>,
-    mut server_details: Json<Server>,
+    server_details: Json<Server>,
     db_pool: Data<PgPool>,
 ) -> HttpResponse {
-    let id = server_id.into_inner();
-    server_details.set_id(id);
     match upsert_server(db_pool.get_ref(), &server_details).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(e) => match e {

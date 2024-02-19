@@ -3,7 +3,7 @@ use crate::utils::{
     http_client::{ContentType, Header, Path},
 };
 use muttr_server::{
-    handlers::user::SIGNUP_PATH,
+    handlers::user::{BASE_PATH, SIGNUP_PATH},
     storage::{get_user_by_email, USERS_TABLE_NAME},
 };
 use secrecy::Secret;
@@ -28,7 +28,7 @@ async fn test_signup_success() {
     let response = app
         .client
         .request(
-            Path::POST(SIGNUP_PATH),
+            Path::POST(format!("{}{}", BASE_PATH, SIGNUP_PATH)),
             &[Header::ContentType(ContentType::FormURLEncoded)],
             Some(body),
         )
@@ -99,7 +99,7 @@ async fn test_signup_failed_400() {
         let response = app
             .client
             .request(
-                Path::POST(SIGNUP_PATH),
+                Path::POST(format!("{}{}", BASE_PATH, SIGNUP_PATH)),
                 &[Header::ContentType(ContentType::FormURLEncoded)],
                 Some(invalid_body),
             )

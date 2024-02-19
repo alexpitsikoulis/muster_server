@@ -5,7 +5,7 @@ use crate::utils::{
     jwt::token_in_response_matches_user,
 };
 use claim::assert_ok;
-use muttr_server::handlers::user::LOGIN_PATH;
+use muttr_server::handlers::user::{BASE_PATH, LOGIN_PATH};
 
 #[actix::test]
 async fn test_login_success() {
@@ -38,7 +38,7 @@ async fn test_login_success() {
         let response = app
             .client
             .request(
-                Path::POST(LOGIN_PATH),
+                Path::POST(format!("{}{}", BASE_PATH, LOGIN_PATH)),
                 &[Header::ContentType(ContentType::FormURLEncoded)],
                 Some(body),
             )
@@ -99,7 +99,7 @@ async fn test_login_failure_on_invalid_credentials() {
         let response = app
             .client
             .request(
-                Path::POST(LOGIN_PATH),
+                Path::POST(format!("{}{}", BASE_PATH, LOGIN_PATH)),
                 &[Header::ContentType(ContentType::FormURLEncoded)],
                 Some(invalid_body),
             )
@@ -132,7 +132,7 @@ async fn test_login_failure_on_unconfirmed_email() {
     let response = app
         .client
         .request(
-            Path::POST(LOGIN_PATH),
+            Path::POST(format!("{}{}", BASE_PATH, LOGIN_PATH)),
             &[Header::ContentType(ContentType::FormURLEncoded)],
             Some(body),
         )

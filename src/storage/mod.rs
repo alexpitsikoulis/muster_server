@@ -1,3 +1,4 @@
+mod chat;
 mod confirmation_token;
 mod server;
 mod types;

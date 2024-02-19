@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-pub const SIGNUP_PATH: &str = "/users/signup";
+pub const SIGNUP_PATH: &str = "/signup";
 
 #[derive(Serialize, Deserialize)]
 pub struct UserSignupFormData {

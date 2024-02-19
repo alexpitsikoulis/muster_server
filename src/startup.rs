@@ -3,13 +3,15 @@ use crate::{
     domain::{email, user::Email},
     handlers::{
         health_check::{health_check, HEALTH_CHECK_PATH},
-        server, user, websockets::ChatManager,
+        middleware::AuthMiddleware,
+        server, user,
+        websockets::ChatManager,
     },
 };
 use actix::{Actor, Addr};
 use actix_web::{
     dev::Server,
-    web::{get, patch, post, put, Data},
+    web::{get, patch, post, put, scope, Data},
     HttpServer,
 };
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -62,26 +64,31 @@ impl App {
             actix_web::App::new()
                 .wrap(TracingLogger::default())
                 .route(HEALTH_CHECK_PATH, get().to(health_check))
-                .route(
-                    &format!("{}/{{user_id}}", user::BASE_PATH),
-                    put().to(user::update),
+                .service(
+                    scope(user::BASE_PATH)
+                        .route(user::SIGNUP_PATH, post().to(user::signup))
+                        .route(user::LOGIN_PATH, post().to(user::login))
+                        .route(
+                            &format!("{}/{{confirmation_token}}", user::CONFIRM_PATH),
+                            post().to(user::confirm),
+                        )
+                        .service(
+                            scope("/{user_id}")
+                                .route("", put().to(user::update))
+                                .route("", patch().to(user::patch)),
+                        ),
                 )
-                .route(
-                    &format!("{}/{{user_id}}", user::BASE_PATH),
-                    patch().to(user::patch),
+                .service(
+                    scope(server::BASE_PATH)
+                        .route("", post().to(server::create))
+                        .service(scope("/{server_id}").route("", put().to(server::update))),
                 )
-                .route(user::SIGNUP_PATH, post().to(user::signup))
-                .route(user::LOGIN_PATH, post().to(user::login))
-                .route(
-                    &format!("{}/{{confirmation_token}}", user::CONFIRM_PATH),
-                    post().to(user::confirm),
+                .service(
+                    scope("/ws")
+                        .route("/chat", get().to(ChatManager::chat_route))
+                        .wrap(AuthMiddleware),
                 )
-                .route(server::BASE_PATH, post().to(server::create))
-                .route(
-                    &format!("{}/{{server_id}}", server::BASE_PATH),
-                    put().to(server::update),
-                )
-                .route("/chat", get().to(ChatManager::chat_route))
+                .app_data(chat_manager.clone())
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())
         })

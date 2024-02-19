@@ -12,7 +12,7 @@ use crate::{
     utils::jwt::generate_token,
 };
 
-pub const LOGIN_PATH: &str = "/users/login";
+pub const LOGIN_PATH: &str = "/login";
 
 #[derive(Deserialize)]
 pub struct LoginForm {

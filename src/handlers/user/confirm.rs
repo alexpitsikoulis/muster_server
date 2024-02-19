@@ -6,7 +6,7 @@ use actix_web::{web::Data, HttpRequest, HttpResponse};
 use chrono::Utc;
 use sqlx::PgPool;
 
-pub const CONFIRM_PATH: &str = "/users/confirm";
+pub const CONFIRM_PATH: &str = "/confirm";
 
 #[tracing::instrument(name = "Confirming user email", skip(req, db_pool), fields())]
 pub async fn confirm(req: HttpRequest, db_pool: Data<PgPool>) -> HttpResponse {
