@@ -23,13 +23,13 @@ DB_PASSWORD=${POSTGRES_PASSWORD:=password}
 DB_NAME=${POSTGRES_DB:=muttr}
 DB_PORT=${POSTGRES_PORT:=5432}
 
-if docker ps | grep postgres-muttr; then
+if docker ps | grep postgres; then
     continue
-elif docker ps -a | grep postgres-muttr; then
-    docker start postgres-muttr
+elif docker ps -a | grep postgres; then
+    docker start postgres
 else
     docker run \
-        --name postgres-muttr \
+        --name postgres \
         -e POSTGRES_USER=${DB_USER} \
         -e POSTGRES_PASSWORD=${DB_PASSWORD} \
         -e POSTGRES_DB=${DB_NAME} \
@@ -40,7 +40,7 @@ else
 fi
 
 while true ; do
-    if [ -x "$(command docker exec postgres-muttr psql -U postgres -c \"\\q\")"]; then
+    if [ -x "$(command docker exec postgres psql -U postgres -c \"\\q\")"]; then
         DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
         break
     else
