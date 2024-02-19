@@ -38,6 +38,9 @@ regex = "1.10.2"
 claim = "0.5.0"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
+actix = "0.13.3"
+actix-rt = "2.9.0"
+actix-web-actors = "4.3.0"
 
 [dependencies.sqlx]
 version = "0.6"

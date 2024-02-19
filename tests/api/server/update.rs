@@ -5,7 +5,7 @@ use crate::utils::{
 use muttr_server::{domain::server::Server, handlers::server::BASE_PATH};
 use serde_json::to_string;
 
-#[tokio::test]
+#[actix::test]
 async fn test_update_server_success() {
     let mut app = TestApp::spawn().await;
 
@@ -191,7 +191,7 @@ async fn test_update_server_success() {
     }
 }
 
-#[tokio::test]
+#[actix::test]
 pub async fn test_update_server_404() {
     let app = TestApp::spawn().await;
 

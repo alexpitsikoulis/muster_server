@@ -4,7 +4,7 @@ use muttr_server::{
     utils::telemetry::{create_subscriber, init_subscriber},
 };
 
-#[tokio::main]
+#[actix::main]
 async fn main() -> std::io::Result<()> {
     let subscriber = create_subscriber("muttr_server".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);

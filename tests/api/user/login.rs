@@ -7,7 +7,7 @@ use crate::utils::{
 use claim::assert_ok;
 use muttr_server::handlers::user::LOGIN_PATH;
 
-#[tokio::test]
+#[actix::test]
 async fn test_login_success() {
     let mut app = TestApp::spawn().await;
 
@@ -64,7 +64,7 @@ async fn test_login_success() {
     }
 }
 
-#[tokio::test]
+#[actix::test]
 async fn test_login_failure_on_invalid_credentials() {
     let mut app = TestApp::spawn().await;
 
@@ -119,7 +119,7 @@ async fn test_login_failure_on_invalid_credentials() {
     }
 }
 
-#[tokio::test]
+#[actix::test]
 async fn test_login_failure_on_unconfirmed_email() {
     let mut app = TestApp::spawn().await;
 

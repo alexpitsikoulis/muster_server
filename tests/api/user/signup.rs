@@ -12,7 +12,7 @@ use wiremock::{
     Mock, ResponseTemplate,
 };
 
-#[tokio::test]
+#[actix::test]
 async fn test_signup_success() {
     let app = TestApp::spawn().await;
 
@@ -64,7 +64,7 @@ async fn test_signup_success() {
     };
 }
 
-#[tokio::test]
+#[actix::test]
 async fn test_signup_failed_400() {
     let mut app = TestApp::spawn().await;
     let test_cases = vec![

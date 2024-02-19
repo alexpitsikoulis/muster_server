@@ -9,7 +9,7 @@ use muttr_server::{
 use secrecy::Secret;
 use serde_json::to_string;
 
-#[tokio::test]
+#[actix::test]
 async fn test_update_user_success() {
     let mut app = TestApp::spawn().await;
 

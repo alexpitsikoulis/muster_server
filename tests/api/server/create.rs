@@ -9,7 +9,7 @@ use muttr_server::{
 use serde_json::to_string;
 use uuid::Uuid;
 
-#[tokio::test]
+#[actix::test]
 async fn test_create_server_success() {
     let mut app = TestApp::spawn().await;
 

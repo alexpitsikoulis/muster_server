@@ -2,7 +2,7 @@ use crate::utils::{app::TestApp, http_client::Path};
 use claim::assert_some_eq;
 use muttr_server::handlers::health_check::HEALTH_CHECK_PATH;
 
-#[tokio::test]
+#[actix::test]
 async fn test_health_check() {
     let app = TestApp::spawn().await;
 
