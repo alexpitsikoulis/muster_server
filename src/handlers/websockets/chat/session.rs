@@ -18,14 +18,12 @@ impl Actor for ChatSession {
     fn started(&mut self, ctx: &mut Self::Context) {
         self.mgr.do_send(Connect {
             addr: ctx.address(),
-            id: self.id.clone(),
+            id: self.id,
         });
     }
 
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
-        self.mgr.do_send(Disconnect {
-            id: self.id.clone(),
-        });
+        self.mgr.do_send(Disconnect { id: self.id });
         Running::Stop
     }
 }

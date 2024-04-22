@@ -1,5 +1,4 @@
 use crate::domain::chat::{DMThread, DirectMessage};
-use secrecy::Secret;
 use sqlx::{postgres::PgQueryResult, query, Error, PgPool};
 
 pub const DM_THREADS_TABLE_NAME: &str = "dm_threads";
@@ -45,7 +44,10 @@ pub async fn upsert_dm_thread(
     .await
 }
 
-pub async fn upsert_direct_message(db_pool: &PgPool, direct_message: DirectMessage) -> Result<PgQueryResult, Error> {
+pub async fn upsert_direct_message(
+    db_pool: &PgPool,
+    direct_message: DirectMessage,
+) -> Result<PgQueryResult, Error> {
     query(
         r#"
         INSERT INTO direct_messages (id, thread_id, sender_id, message, is_read, reaction, created_at, updated_at, deleted_at)

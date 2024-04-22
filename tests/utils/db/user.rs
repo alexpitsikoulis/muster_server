@@ -34,10 +34,7 @@ impl TestDB {
         }
     }
 
-    pub async fn get_user_by_id(&mut self, id: Uuid) -> User {
-        match get_user_by_id(&self.db_pool, id).await {
-            Ok(user) => user,
-            Err(e) => panic!("failed to get user by id: {:?}", e),
-        }
+    pub async fn get_user_by_id(&mut self, id: Uuid) -> Result<User, sqlx::Error> {
+        get_user_by_id(&self.db_pool, id).await
     }
 }

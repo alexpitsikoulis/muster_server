@@ -1,3 +1,3 @@
 mod direct_message;
 
-pub use direct_message::{DirectMessage, DMThread};
+pub use direct_message::{DMThread, DirectMessage};

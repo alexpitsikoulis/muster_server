@@ -20,9 +20,9 @@ impl UserID {
     }
 }
 
-impl Into<Uuid> for &UserID {
-    fn into(self) -> Uuid {
-        self.0
+impl From<&UserID> for Uuid {
+    fn from(val: &UserID) -> Self {
+        val.0
     }
 }
 

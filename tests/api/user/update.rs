@@ -107,7 +107,11 @@ async fn test_update_user_success() {
             response.text().await.unwrap_or_default(),
         );
 
-        user = app.database.get_user_by_id(user.id()).await;
+        // user = assert_ok!(app.database.get_user_by_id(user.id()).await, "unable to retrieve user {} from database: {}", body.iud);
+        user = match app.database.get_user_by_id(user.id()).await {
+            Ok(user) => user,
+            Err(e) => panic!("unable to retrieve user {} from database: {}", user.id(), e),
+        };
 
         assert_eq!(
             body, user,

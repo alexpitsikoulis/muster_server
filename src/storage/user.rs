@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use sqlx::{postgres::PgQueryResult, query, query_as, Error, PgPool};
 use uuid::Uuid;
 
@@ -126,4 +127,46 @@ pub async fn get_user_by_handle(db_pool: &PgPool, handle: &str) -> Result<User, 
         .bind(handle)
         .fetch_one(db_pool)
         .await
+}
+
+#[tracing::instrument(
+    name = "Soft Deleting User in Database",
+    skip(user_id, deleted_at, db_pool),
+    fields(
+        user_id = %user_id,
+        deleted_at = %deleted_at,
+    )
+)]
+pub async fn soft_delete_user(
+    db_pool: &PgPool,
+    user_id: Uuid,
+    deleted_at: DateTime<Utc>,
+) -> Result<PgQueryResult, Error> {
+    query(
+        r#"
+            UPDATE users SET deleted_at = $1 WHERE id = $2;
+        "#,
+    )
+    .bind(deleted_at)
+    .bind(user_id)
+    .execute(db_pool)
+    .await
+}
+
+#[tracing::instrument(
+    name = "Hard Deleting User in Database",
+    skip(user_id, db_pool),
+    fields(
+        user_id = %user_id,
+    )
+)]
+pub async fn hard_delete_user(db_pool: &PgPool, user_id: Uuid) -> Result<PgQueryResult, Error> {
+    query(
+        r#"
+            DELETE FROM users WHERE id = $1;
+        "#,
+    )
+    .bind(user_id)
+    .execute(db_pool)
+    .await
 }

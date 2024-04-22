@@ -11,7 +11,7 @@ use crate::{
 use actix::{Actor, Addr};
 use actix_web::{
     dev::Server,
-    web::{get, patch, post, put, scope, Data},
+    web::{delete, get, patch, post, put, scope, Data},
     HttpServer,
 };
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -75,7 +75,9 @@ impl App {
                         .service(
                             scope("/{user_id}")
                                 .route("", put().to(user::update))
-                                .route("", patch().to(user::patch)),
+                                .route("", patch().to(user::patch))
+                                .route("", delete().to(user::soft_delete))
+                                .route("/hard", delete().to(user::hard_delete)),
                         ),
                 )
                 .service(

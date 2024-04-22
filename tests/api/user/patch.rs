@@ -99,7 +99,10 @@ async fn test_patch_user_success() {
             response.text().await.unwrap_or_default(),
         );
 
-        user = app.database.get_user_by_id(user.id()).await;
+        user = match app.database.get_user_by_id(user.id()).await {
+            Ok(user) => user,
+            Err(e) => panic!("failed to retrieve user {} from database: {}", user.id(), e),
+        };
 
         check_field(body.email, user.email(), error_case);
         check_field(body.handle, user.handle(), error_case);

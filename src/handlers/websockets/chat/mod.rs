@@ -18,6 +18,12 @@ impl Actor for ChatManager {
     type Context = Context<Self>;
 }
 
+impl Default for ChatManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ChatManager {
     pub fn new() -> Self {
         ChatManager {
