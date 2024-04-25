@@ -152,7 +152,14 @@ async fn test_update_server_success() {
             error_case,
         );
 
-        server = app.database.get_server_by_id(server.id()).await;
+        server = match app.database.get_server_by_id(server.id()).await {
+            Ok(server) => server,
+            Err(e) => panic!(
+                "failed to retrieve server {} from database: {}",
+                server.id(),
+                e
+            ),
+        };
 
         assert_eq!(
             body.name(),

@@ -1,4 +1,5 @@
 use crate::domain::server::Server;
+use chrono::{DateTime, Utc};
 use sqlx::{postgres::PgQueryResult, query, query_as, Error, PgPool};
 use uuid::Uuid;
 
@@ -84,5 +85,47 @@ pub async fn get_many_servers_by_owner_id(
     )
     .bind(id)
     .fetch_all(db_pool)
+    .await
+}
+
+#[tracing::instrument(
+    name = "Soft Deleting Server in Database",
+    skip(server_id, deleted_at, db_pool),
+    fields(
+        server_id = %server_id,
+        deleted_at = %deleted_at,
+    )
+)]
+pub async fn soft_delete_server(
+    db_pool: &PgPool,
+    server_id: Uuid,
+    deleted_at: DateTime<Utc>,
+) -> Result<PgQueryResult, Error> {
+    query(
+        r#"
+            UPDATE servers SET deleted_at = $1 WHERE id = $2;
+        "#,
+    )
+    .bind(deleted_at)
+    .bind(server_id)
+    .execute(db_pool)
+    .await
+}
+
+#[tracing::instrument(
+    name = "Hard Deleting Server in Database",
+    skip(server_id, db_pool),
+    fields(
+        server_id = %server_id,
+    )
+)]
+pub async fn hard_delete_server(db_pool: &PgPool, server_id: Uuid) -> Result<PgQueryResult, Error> {
+    query(
+        r#"
+            DELETE FROM servers WHERE id = $1;
+        "#,
+    )
+    .bind(server_id)
+    .execute(db_pool)
     .await
 }

@@ -28,7 +28,7 @@ impl TestDB {
         }
     }
 
-    pub async fn get_server_by_id(&mut self, id: Uuid) -> Server {
-        get_server_by_id(&self.db_pool, id).await.unwrap()
+    pub async fn get_server_by_id(&mut self, id: Uuid) -> Result<Server, sqlx::Error> {
+        get_server_by_id(&self.db_pool, id).await
     }
 }

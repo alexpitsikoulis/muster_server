@@ -2,7 +2,7 @@ use crate::utils::{
     app::TestApp,
     http_client::{ContentType, Header, Path},
 };
-use chrono::{DateTime, Days, Utc};
+use chrono::{Days, Utc};
 use claim::{assert_err, assert_none, assert_ok, assert_some};
 use fake::{faker::internet::en::SafeEmail, Fake};
 use muttr_server::{domain::user, handlers::user::BASE_PATH};

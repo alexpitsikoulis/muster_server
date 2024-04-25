@@ -74,7 +74,10 @@ async fn test_create_server_success() {
         let id = Uuid::parse_str(&response.text().await.expect("response body was empty"))
             .expect("response was not a valid UUID");
 
-        let server = app.database.get_server_by_id(id).await;
+        let server = match app.database.get_server_by_id(id).await {
+            Ok(server) => server,
+            Err(e) => panic!("failed to retrieve server {} from database: {}", id, e),
+        };
 
         assert_eq!(body, server)
     }

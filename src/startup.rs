@@ -83,7 +83,12 @@ impl App {
                 .service(
                     scope(server::BASE_PATH)
                         .route("", post().to(server::create))
-                        .service(scope("/{server_id}").route("", put().to(server::update))),
+                        .service(
+                            scope("/{server_id}")
+                                .route("", put().to(server::update))
+                                .route("", delete().to(server::soft_delete))
+                                .route("/hard", delete().to(server::hard_delete)),
+                        ),
                 )
                 .service(
                     scope("/ws")
