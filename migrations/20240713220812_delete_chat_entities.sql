@@ -1,0 +1,10 @@
+DROP TABLE direct_messages;
+DROP TABLE dm_threads;
+DROP TABLE server_message_reads;
+DROP TABLE server_message_reactions;
+DROP TABLE server_messages;
+DROP TABLE server_threads;
+DROP TABLE group_chat_message_reads;
+DROP TABLE group_chat_message_reactions;
+DROP TABLE group_chat_messages;
+DROP TABLE group_chat_members;

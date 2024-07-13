@@ -5,10 +5,8 @@ use crate::{
         health_check::{health_check, HEALTH_CHECK_PATH},
         middleware::AuthMiddleware,
         server, user,
-        websockets::ChatManager,
     },
 };
-use actix::{Actor, Addr};
 use actix_web::{
     dev::Server,
     web::{delete, get, patch, post, put, scope, Data},
@@ -44,10 +42,9 @@ impl App {
         };
 
         let email_client = email::Client::new(config.email_client.base_url, sender_email);
-        let chat_manager = ChatManager::new().start();
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = Self::run(listener, db_pool, email_client, chat_manager)?;
+        let server = Self::run(listener, db_pool, email_client)?;
 
         Ok(Self { port, server })
     }
@@ -56,7 +53,6 @@ impl App {
         listener: TcpListener,
         db_pool: PgPool,
         email_client: email::Client,
-        chat_manager: Addr<ChatManager>,
     ) -> Result<Server, std::io::Error> {
         let db_pool = Data::new(db_pool);
         let email_client = Data::new(email_client);
@@ -90,12 +86,6 @@ impl App {
                                 .route("/hard", delete().to(server::hard_delete)),
                         ),
                 )
-                .service(
-                    scope("/ws")
-                        .route("/chat", get().to(ChatManager::chat_route))
-                        .wrap(AuthMiddleware),
-                )
-                .app_data(chat_manager.clone())
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())
         })
