@@ -3,7 +3,6 @@ use crate::{
     domain::{email, user::Email},
     handlers::{
         health_check::{health_check, HEALTH_CHECK_PATH},
-        middleware::AuthMiddleware,
         server, user,
     },
 };
@@ -70,6 +69,7 @@ impl App {
                         )
                         .service(
                             scope("/{user_id}")
+                                .route("", get().to(user::get_by_id))
                                 .route("", put().to(user::update))
                                 .route("", patch().to(user::patch))
                                 .route("", delete().to(user::soft_delete))

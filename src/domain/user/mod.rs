@@ -1,7 +1,9 @@
+mod api;
 mod credentials;
 mod tests;
 
 use actix_web::HttpResponse;
+pub use api::GetUserResponse;
 pub use credentials::{
     deserialize_handle_option, deserialize_password_option, deserilaize_email_option, Email,
     EmailValidationErr, Handle, HandleValidationErr, Login, Password, PasswordValidationErr,
